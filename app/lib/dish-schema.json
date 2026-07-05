@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "dishes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name_ko": { "type": "string" },
+          "name_en": { "type": "string" },
+          "translated_name": { "type": "string" },
+          "ingredients": { "type": "string" },
+          "allergens": { "type": "array", "items": { "type": "string" } },
+          "crossContactAllergens": { "type": "array", "items": { "type": "string" } },
+          "spicy": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "eatingMethod": { "type": "array", "items": { "type": "string" } },
+          "description": { "type": "string" }
+        },
+        "required": ["name_ko", "name_en", "translated_name", "ingredients", "allergens", "crossContactAllergens", "spicy", "eatingMethod", "description"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["dishes"],
+  "additionalProperties": false
+}

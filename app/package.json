@@ -1,0 +1,13 @@
+{
+  "name": "fitbridge-jeonpo-guide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FitBridge - Jeonpo travel guide: menu translation, allergy communication, exchange rates for foreign travelers in Busan's Jeonpo-dong.",
+  "scripts": {
+    "start": "node --env-file=.env server.js",
+    "dev": "node --env-file=.env server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
