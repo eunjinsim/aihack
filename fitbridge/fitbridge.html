@@ -1,0 +1,3143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitBridge - 전포 트래블 키트 (Jeonpo Travel Kit)</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for Vintage Elegance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet + OpenStreetMap: free, no API key required -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Playfair Display', 'Lora', 'Georgia', 'serif'],
+            sans: ['Noto Sans KR', 'sans-serif'],
+          },
+          colors: {
+            vintage: {
+              cream: '#FAF6F0',
+              beige: '#F1ECE4',
+              clay: '#C97A53',
+              terracotta: '#A65B32',
+              dark: '#2E2520',
+              sage: '#8FA89B',
+              olive: '#5F6F65'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    /* Smooth vintage scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1ECE4;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #C97A53;
+      border-radius: 3px;
+    }
+    .vintage-border {
+      border: 1px solid rgba(46, 37, 32, 0.12);
+    }
+    .vintage-shadow {
+      box-shadow: 0 4px 20px -2px rgba(46, 37, 32, 0.08);
+    }
+    .vintage-glow {
+      animation: warm-pulse 2s infinite ease-in-out;
+    }
+    @keyframes warm-pulse {
+      0%, 100% { box-shadow: 0 0 0 0px rgba(201, 122, 83, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(201, 122, 83, 0); }
+    }
+    /* Vintage-style tweaks for the Leaflet + OpenStreetMap container */
+    #jeonpo-map {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #FAF6F0;
+    }
+    .leaflet-bar {
+      border: 1px solid rgba(46, 37, 32, 0.15) !important;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+    }
+    .leaflet-bar a {
+      background-color: #FAF6F0 !important;
+      color: #2E2520 !important;
+    }
+    .leaflet-bar a:hover {
+      background-color: #F1ECE4 !important;
+    }
+  </style>
+</head>
+<body class="bg-vintage-cream text-vintage-dark font-sans selection:bg-vintage-clay selection:text-white min-h-screen flex justify-center">
+
+  <!-- Mobile-centric desktop wrapper to mimic authentic travel application -->
+  <div class="w-full max-w-md bg-vintage-cream min-h-screen flex flex-col relative shadow-2xl border-x border-vintage-dark/10 overflow-x-hidden">
+    
+    <!-- Toast Notification Container -->
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-vintage-dark text-vintage-cream px-4 py-3 rounded-lg text-sm font-medium vintage-shadow hidden flex items-center gap-2 max-w-[90%] border border-vintage-clay/20">
+      <span id="toast-message">Notification message</span>
+    </div>
+
+    <!-- ==========================================
+         STAGE 1: LANDING & INITIALIZATION (FitBridge)
+         ========================================== -->
+    <div id="landing-page" class="flex-1 flex flex-col justify-between p-6 z-10 bg-vintage-cream">
+      
+      <!-- Top Vintage Brand Banner -->
+      <div class="text-center pt-8">
+        <span class="text-xs uppercase tracking-[0.2em] text-vintage-olive font-semibold">Welcome to Busan</span>
+        <h1 class="font-serif text-5xl font-bold text-vintage-terracotta mt-2 tracking-wide">FitBridge</h1>
+        <p class="font-serif italic text-vintage-olive text-sm mt-1" id="landing-tagline">Your Local Jeonpo Travel Companion</p>
+        <div class="w-16 h-[2px] bg-vintage-clay mx-auto mt-6"></div>
+      </div>
+
+      <!-- Main Step Onboarding Card -->
+      <div class="bg-vintage-beige/60 rounded-2xl p-5 vintage-border vintage-shadow my-6 space-y-6">
+        
+        <!-- Language Choice -->
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-vintage-olive font-bold mb-2">Select Your Language / 国籍・言語</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="setLanguage('en')" id="lang-btn-en" class="lang-selector py-2 px-2 text-xs rounded-lg font-medium vintage-border bg-white hover:bg-vintage-beige transition flex flex-col items-center gap-0.5">
+              <span>🇺🇸 English</span> <span class="text-[10px] text-vintage-olive">EN</span>
+            </button>
+            <button onclick="setLanguage('ja')" id="lang-btn-ja" class="lang-selector py-2 px-2 text-xs rounded-lg font-medium vintage-border bg-white hover:bg-vintage-beige transition flex flex-col items-center gap-0.5">
+              <span>🇯🇵 日本語</span> <span class="text-[10px] text-vintage-olive">JA</span>
+            </button>
+            <button onclick="setLanguage('zh')" id="lang-btn-zh" class="lang-selector py-2 px-2 text-xs rounded-lg font-medium vintage-border bg-white hover:bg-vintage-beige transition flex flex-col items-center gap-0.5">
+              <span>🇨🇳 简体中文</span> <span class="text-[10px] text-vintage-olive">ZH</span>
+            </button>
+            <button onclick="setLanguage('vi')" id="lang-btn-vi" class="lang-selector py-2 px-2 text-xs rounded-lg font-medium vintage-border bg-white hover:bg-vintage-beige transition flex flex-col items-center gap-0.5">
+              <span>🇻🇳 Tiếng Việt</span> <span class="text-[10px] text-vintage-olive">VI</span>
+            </button>
+            <button onclick="setLanguage('es')" id="lang-btn-es" class="lang-selector py-2 px-2 text-xs rounded-lg font-medium vintage-border bg-white hover:bg-vintage-beige transition flex flex-col items-center gap-0.5">
+              <span>🇪🇸 Español</span> <span class="text-[10px] text-vintage-olive">ES</span>
+            </button>
+            <button onclick="setLanguage('ko')" id="lang-btn-ko" class="lang-selector py-2 px-2 text-xs rounded-lg font-medium vintage-border bg-white hover:bg-vintage-beige transition flex flex-col items-center gap-0.5">
+              <span>🇰🇷 한국어</span> <span class="text-[10px] text-vintage-olive">KO</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="h-[1px] bg-vintage-dark/10"></div>
+
+        <!-- Quick Preferences -->
+        <div class="space-y-4">
+          <h3 class="font-serif text-lg font-semibold text-vintage-dark text-center" id="lbl-quick-profile">Quick Safety Profile</h3>
+          
+          <!-- Diet Selection -->
+          <div>
+            <label class="block text-xs font-semibold text-vintage-olive mb-1" id="lbl-diet">Dietary Restrictions</label>
+            <select id="diet-select" onchange="syncOnboardingDiet()" class="w-full text-xs p-2.5 rounded-lg bg-white vintage-border text-vintage-dark focus:outline-none focus:ring-1 focus:ring-vintage-clay">
+              <!-- Dynamically localized via JS -->
+            </select>
+          </div>
+
+          <!-- Spicy Level Selector -->
+          <div>
+            <label class="block text-xs font-semibold text-vintage-olive mb-1" id="lbl-spicy">Spicy Preference</label>
+            <div class="grid grid-cols-4 gap-1 text-center">
+              <button onclick="setSpicy(0)" id="spicy-btn-0" class="spicy-selector p-2 text-xs rounded bg-white vintage-border hover:bg-vintage-beige transition">Mild</button>
+              <button onclick="setSpicy(1)" id="spicy-btn-1" class="spicy-selector p-2 text-xs rounded bg-white vintage-border hover:bg-vintage-beige transition">Normal</button>
+              <button onclick="setSpicy(2)" id="spicy-btn-2" class="spicy-selector p-2 text-xs rounded bg-white vintage-border hover:bg-vintage-beige transition">Hot 🔥</button>
+              <button onclick="setSpicy(3)" id="spicy-btn-3" class="spicy-selector p-2 text-xs rounded bg-white vintage-border hover:bg-vintage-beige transition">Extreme 🌶️</button>
+            </div>
+            <div class="mt-2 p-2.5 bg-vintage-sage/10 border border-vintage-sage/20 rounded-lg text-[11px] text-vintage-olive leading-relaxed flex gap-1.5" id="spicy-desc-box">
+              <span class="shrink-0">💡</span>
+              <span id="spicy-desc-text">Most first-time visitors choose this level.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Enter App CTA -->
+      <div class="pb-6">
+        <button onclick="completeOnboarding()" class="w-full py-4 bg-vintage-terracotta text-white rounded-xl font-serif text-lg font-bold hover:bg-vintage-dark transition duration-300 vintage-shadow vintage-glow flex justify-center items-center gap-2">
+          <span id="btn-enter-text">Begin Safe Journey</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+        </button>
+        <p class="text-[10px] text-vintage-olive text-center mt-3 italic" id="landing-footer">Jeonpo Cafe Street Safety Navigation & Companion By FitBridge</p>
+      </div>
+
+    </div>
+
+    <!-- ==========================================
+         STAGE 2: MAIN WEB APP WORKSPACE
+         ========================================== -->
+    <div id="main-app" class="hidden flex-1 flex flex-col justify-between">
+      
+      <!-- Vintage App Header -->
+      <header class="bg-white border-b border-vintage-dark/10 py-3 px-4 flex justify-between items-center z-20 vintage-shadow">
+        <div class="flex items-center gap-2">
+          <span class="font-serif font-extrabold text-xl text-vintage-terracotta tracking-wider">FitBridge</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-vintage-sage/20 text-vintage-olive font-semibold uppercase tracking-widest">Jeonpo</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <!-- Reset to initial onboarding screen (clears saved profile) -->
+          <button onclick="resetToOnboarding()" class="p-2 rounded-full bg-vintage-beige/60 hover:bg-vintage-beige transition" title="Reset / Start Over">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-vintage-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+          </button>
+          <button onclick="openProfileModal()" class="p-2 rounded-full bg-vintage-beige/60 hover:bg-vintage-beige transition relative group">
+            <!-- Profile indicator count of active allergies -->
+            <span id="allergy-badge" class="absolute -top-1 -right-1 bg-vintage-clay text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold hidden">0</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-vintage-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Dynamic Content Container -->
+      <main class="flex-1 overflow-y-auto pb-24 relative">
+
+        <!-- ==================== TAB 1: INTERACTIVE GOOGLE MAP ==================== -->
+        <section id="view-map" class="tab-content p-4 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="font-serif text-2xl font-bold text-vintage-dark" id="map-title">Jeonpo Safe Map</h2>
+              <p class="text-xs text-vintage-olive" id="map-subtitle">Tap markers to discover menus & safety parameters</p>
+            </div>
+            <span class="text-[11px] bg-vintage-sage/10 text-vintage-olive px-2.5 py-1 rounded-full border border-vintage-sage/20 font-medium">Busan, S. Korea</span>
+          </div>
+
+          <!-- Real Interactive Map Filters -->
+          <div class="flex gap-2 p-1 bg-vintage-beige/50 rounded-xl vintage-border">
+            <button onclick="setMapFilter('all')" id="filter-all" class="map-filter-btn flex-1 py-1.5 text-xs font-semibold rounded-lg transition bg-white text-vintage-dark shadow-sm">All</button>
+            <button onclick="setMapFilter('restaurant')" id="filter-restaurant" class="map-filter-btn flex-1 py-1.5 text-xs font-semibold rounded-lg transition text-vintage-olive hover:bg-white/50">🍚 Restaurants</button>
+            <button onclick="setMapFilter('cafe')" id="filter-cafe" class="map-filter-btn flex-1 py-1.5 text-xs font-semibold rounded-lg transition text-vintage-olive hover:bg-white/50">☕ Cafes</button>
+          </div>
+
+          <!-- Google Maps Container -->
+          <div class="relative w-full h-72 rounded-2xl overflow-hidden vintage-border shadow-inner">
+            <div id="jeonpo-map" class="w-full h-full"></div>
+          </div>
+
+          <!-- Selected Location Detail Card -->
+          <div id="location-detail-card" class="bg-white p-4 rounded-xl vintage-border vintage-shadow border-l-4 border-vintage-clay transition-all duration-300 transform scale-100 hidden">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-vintage-clay tracking-wider" id="loc-cat">KOREAN RESTAURANT</span>
+                <h3 class="font-serif text-xl font-bold text-vintage-dark mt-0.5" id="loc-name">Jeonpo Solgup Samgyeopsal</h3>
+              </div>
+            </div>
+            
+            <p class="text-xs text-vintage-olive mt-2 leading-relaxed" id="loc-desc">Traditional Korean Pork belly grilled on a iron cauldron lid with ripe Kimchi.</p>
+            
+            <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+              <div class="bg-vintage-beige/40 p-2 rounded">
+                <span class="block text-[10px] text-vintage-olive font-bold uppercase" id="loc-lbl-dish">Main Speciality</span>
+                <span class="font-medium text-vintage-dark" id="loc-dishes">Samgyeopsal Set</span>
+              </div>
+              <div class="bg-vintage-beige/40 p-2 rounded">
+                <span class="block text-[10px] text-vintage-olive font-bold uppercase" id="loc-lbl-allergy">Triggers in House</span>
+                <span class="font-medium text-vintage-terracotta" id="loc-allergens">Pork, Garlic, Soy</span>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <button onclick="viewReviewsForLocation()" class="w-full py-2.5 bg-white vintage-border text-vintage-dark rounded-lg text-xs font-semibold hover:bg-vintage-beige transition flex items-center justify-center gap-1.5">
+                <span class="text-amber-500">⭐</span>
+                <span id="btn-loc-view-reviews">View Reviews</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 2: MENU TRANSLATION (Camera / Upload) ==================== -->
+        <section id="view-scanner" class="tab-content hidden p-4 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="font-serif text-2xl font-bold text-vintage-dark" id="scan-title">Menu Translation</h2>
+              <p class="text-xs text-vintage-olive" id="scan-subtitle">Snap or upload a menu to translate it and check ingredients</p>
+            </div>
+          </div>
+
+          <!-- Camera Screen / Capture Interface -->
+          <div class="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-vintage-dark/20 vintage-shadow flex flex-col justify-between p-4">
+            <!-- Simulated Camera Grid -->
+            <div class="absolute inset-0 border-2 border-dashed border-white/20 m-4 pointer-events-none rounded-lg flex items-center justify-center">
+              <div id="scan-laser" class="absolute left-0 right-0 h-0.5 bg-vintage-clay shadow-lg shadow-vintage-clay/80 top-0 transition-all duration-1000 hidden"></div>
+            </div>
+            
+            <!-- Dynamic State views -->
+            <div id="camera-blank" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-vintage-dark">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-vintage-beige/40 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <p class="text-sm font-semibold text-vintage-beige" id="cam-blank-title">Add a Menu Photo</p>
+            </div>
+
+            <!-- Uploaded Image Preview Holder -->
+            <img id="scanned-image-preview" class="absolute inset-0 w-full h-full object-cover hidden" src="" alt="Menu preview">
+
+            <!-- Lens Header Info Overlay -->
+            <div class="z-10 flex justify-end items-center w-full">
+              <span class="text-[10px] text-white/80 font-mono" id="scan-loc-indicator">Jeonpo: Offline Mode</span>
+            </div>
+
+            <!-- Capture Controller Bottom Row -->
+            <div class="z-10 w-full flex justify-between items-center mt-auto">
+              <!-- Photo Source Buttons: Camera + Gallery -->
+              <div class="flex gap-1.5">
+                <!-- Take Photo (forces native camera on mobile via capture attribute) -->
+                <label class="p-2.5 rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/30 transition cursor-pointer" title="Take Photo">
+                  <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleImageUpload(event)">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </label>
+                <!-- Choose from Gallery (plain file picker, no capture attribute) -->
+                <label class="p-2.5 rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/30 transition cursor-pointer" title="Choose from Gallery">
+                  <input type="file" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </label>
+              </div>
+
+              <!-- Central Trigger: now shows translated "Translate" label -->
+              <button onclick="triggerSimulatedScan()" id="btn-trigger-scan" class="px-4 h-12 rounded-full border-2 border-white bg-vintage-clay/80 hover:bg-vintage-clay transition-transform duration-100 flex items-center justify-center shadow-lg active:scale-95 disabled:opacity-40" disabled>
+                <span class="text-white text-xs font-bold" id="btn-trigger-scan-text">Translate</span>
+              </button>
+
+              <!-- Reset Lens Button -->
+              <button onclick="resetScanner()" class="p-2.5 rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/30 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Vision AI Process States & Detection Results -->
+          <div id="scan-result-pane" class="bg-white rounded-2xl p-5 vintage-border vintage-shadow space-y-4 hidden">
+            <div class="flex items-center justify-between border-b border-vintage-dark/10 pb-3">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-vintage-sage animate-ping"></span>
+                <h3 class="font-serif text-lg font-bold text-vintage-dark" id="ocr-results-header">Menu Translation Results</h3>
+              </div>
+              <span class="text-xs font-mono text-vintage-olive" id="ocr-confidence">Matched Score: 95%</span>
+            </div>
+
+            <!-- Identified Components & Probabilities -->
+            <div class="space-y-3">
+              <div>
+                <span class="block text-xs font-bold text-vintage-olive uppercase mb-1.5" id="lbl-detected-dishes">Translated Menu Items</span>
+                <div class="grid grid-cols-3 gap-2" id="vision-elements-list">
+                  <!-- Dynamic food blocks go here -->
+                </div>
+              </div>
+
+              <div class="h-[1px] bg-vintage-dark/10"></div>
+
+              <!-- Profile Comparison Matches -->
+              <div class="p-3 rounded-xl" id="profile-match-banner">
+                <div class="flex items-start gap-2.5">
+                  <div id="match-status-icon" class="mt-0.5">
+                    <!-- Dynamic SVG icon -->
+                  </div>
+                  <div>
+                    <h4 class="font-serif text-sm font-bold" id="match-status-title">High Safety Matching</h4>
+                    <p class="text-xs mt-1 leading-relaxed" id="match-status-desc">All identified ingredients align perfectly with your safety profile.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Single-dish detail view (used by the "Scan Menu Here" demo flow for a known location) -->
+              <div id="single-dish-details" class="space-y-3">
+                <!-- Dish detail matched specs -->
+                <div class="bg-vintage-beige/30 p-3.5 rounded-xl space-y-2">
+                  <div class="flex justify-between text-xs border-b border-vintage-dark/5 pb-1">
+                    <span class="text-vintage-olive font-bold" id="spec-name">Dish Name</span>
+                    <span class="font-semibold" id="spec-val-name">Samgyeopsal</span>
+                  </div>
+                  <div class="flex justify-between text-xs border-b border-vintage-dark/5 pb-1">
+                    <span class="text-vintage-olive font-bold" id="spec-ingredients">Key Ingredients</span>
+                    <span class="font-semibold" id="spec-val-ingredients">Pork belly, garlic, sesame oil</span>
+                  </div>
+                  <div class="flex justify-between text-xs border-b border-vintage-dark/5 pb-1">
+                    <span class="text-vintage-olive font-bold" id="spec-allergy-list">Known Allergens</span>
+                    <span class="font-semibold text-vintage-terracotta" id="spec-val-allergens">None</span>
+                  </div>
+                  <div class="flex justify-between text-xs">
+                    <span class="text-vintage-olive font-bold" id="spec-spicy-lvl">Spice Level</span>
+                    <span class="font-semibold text-amber-600" id="spec-val-spicy">Mild (Level 1)</span>
+                  </div>
+                </div>
+
+                <!-- Dietary Flags Badges -->
+                <div class="flex flex-wrap gap-1.5" id="spec-dietary-flags"></div>
+
+                <!-- How to Eat (Korean Way) Steps -->
+                <div class="bg-vintage-beige/30 p-3.5 rounded-xl space-y-2">
+                  <span class="flex items-center gap-1.5 text-xs font-bold text-vintage-olive uppercase" id="lbl-how-to-eat">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                    <span id="lbl-how-to-eat-text">How to Eat (Korean Way)</span>
+                  </span>
+                  <div class="space-y-1.5" id="eating-method-list"></div>
+                </div>
+
+                <!-- Cultural Note -->
+                <div class="p-3 bg-vintage-sage/10 text-vintage-olive rounded-xl text-xs flex gap-2 border border-vintage-sage/20 hidden" id="cultural-note-box">
+                  <span>💡</span>
+                  <span id="cultural-note-text"></span>
+                </div>
+              </div>
+
+              <!-- Multi-dish list view (used by the real AI photo scan, which can find several items on a menu) -->
+              <div id="multi-dish-list" class="space-y-2 hidden"></div>
+
+              <!-- Question type selector: choose what to ask the staff about the selected dish -->
+              <div class="grid grid-cols-3 gap-1.5">
+                <button onclick="setTtsQuestionType('allergy')" id="qtype-btn-allergy" class="qtype-selector py-2 text-[11px] font-bold rounded-lg vintage-border bg-vintage-terracotta text-white transition">Allergy</button>
+                <button onclick="setTtsQuestionType('taste')" id="qtype-btn-taste" class="qtype-selector py-2 text-[11px] font-bold rounded-lg vintage-border bg-white text-vintage-dark transition hover:bg-vintage-beige">Taste?</button>
+                <button onclick="setTtsQuestionType('popularity')" id="qtype-btn-popularity" class="qtype-selector py-2 text-[11px] font-bold rounded-lg vintage-border bg-white text-vintage-dark transition hover:bg-vintage-beige">Popular?</button>
+              </div>
+
+              <!-- Instant Sound Help TTS Button -->
+              <button onclick="triggerQuickAllergySpeech()" class="w-full py-3 bg-vintage-terracotta text-white rounded-xl text-sm font-bold hover:bg-vintage-dark transition flex items-center justify-center gap-2 vintage-shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                <span id="btn-sound-alarm">Ask Waiter in Korean</span>
+              </button>
+
+              <!-- Ask about the restaurant's most popular dish (not tied to any specific scanned item) -->
+              <button onclick="triggerPopularMenuQuestion()" class="w-full py-2.5 bg-white vintage-border text-vintage-dark rounded-xl text-xs font-bold hover:bg-vintage-beige transition flex items-center justify-center gap-2">
+                <span>🔥</span>
+                <span id="btn-ask-popular">Ask About Popular Dish</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 3: TTS ALARM COMMUNICATOR ==================== -->
+        <section id="view-tts" class="tab-content hidden p-4 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="font-serif text-2xl font-bold text-vintage-dark" id="tts-title">Safe Voice (TTS)</h2>
+              <p class="text-xs text-vintage-olive" id="tts-subtitle">Generate local Korean speech using your checked conditions</p>
+            </div>
+          </div>
+
+          <!-- Master Speech Generator Card -->
+          <div class="bg-white rounded-2xl p-5 vintage-border vintage-shadow space-y-4">
+            
+            <!-- Quick Info banner explaining Korean TTS -->
+            <div class="p-3 bg-vintage-sage/10 text-vintage-olive rounded-xl text-xs flex gap-2 border border-vintage-sage/20">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-vintage-olive" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span id="tts-info-banner">No matter what language your UI is in, TTS output will always speak correct Korean to communicate effectively with waiters in Korea.</span>
+            </div>
+
+            <!-- Allergy Checklist Selection Panel -->
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-vintage-olive uppercase" id="lbl-select-allergens">Check Your Allergies</span>
+                <button onclick="clearAllAllergies()" class="text-[10px] text-vintage-terracotta hover:underline font-bold" id="btn-clear-selection">Clear All</button>
+              </div>
+
+              <!-- 19 Categories Scroll Container with custom styling -->
+              <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1 bg-vintage-beige/30 rounded-xl border border-vintage-dark/5" id="allergen-checkbox-grid">
+                <!-- Javascript will inject 19 items -->
+              </div>
+            </div>
+
+            <!-- Custom Allergy Input Area -->
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-vintage-olive uppercase" id="lbl-custom-allergy">Other / Custom Allergies</label>
+              <div class="flex gap-2">
+                <input type="text" id="custom-allergy-input" class="flex-1 p-2.5 rounded-lg bg-vintage-beige/30 border border-vintage-dark/10 text-xs focus:outline-none focus:border-vintage-clay" placeholder="e.g. Kiwi, Garlic, Sesame">
+                <button onclick="addCustomAllergy()" class="px-4 bg-vintage-dark text-white rounded-lg text-xs font-bold hover:bg-vintage-clay transition" id="btn-add">Add</button>
+              </div>
+              <!-- Small loader feedback during real-time Google Translation to Korean -->
+              <div id="translation-loader" class="text-[10px] text-vintage-olive italic hidden">Translating to Korean...</div>
+              <div id="custom-allergy-badges" class="flex flex-wrap gap-1.5 mt-1.5">
+                <!-- Badges go here -->
+              </div>
+            </div>
+
+            <!-- Generated Script Card -->
+            <div class="p-4 bg-vintage-beige/40 rounded-xl border border-vintage-dark/5 space-y-2">
+              <span class="text-[10px] font-bold text-vintage-olive tracking-wider block uppercase" id="lbl-live-script">Live Korean Speech Draft</span>
+              <div class="text-sm font-semibold text-vintage-dark leading-relaxed font-sans" id="tts-preview-box">
+                "안녕하세요, 저는 알레르기가 있습니다. 이 음식에 해당 성분이 들어가나요?"
+              </div>
+            </div>
+
+            <!-- Trigger Button -->
+            <button onclick="triggerTtsVoice()" class="w-full py-4 bg-vintage-terracotta text-white rounded-xl font-bold hover:bg-vintage-dark transition flex items-center justify-center gap-2 vintage-shadow vintage-glow">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+              <span class="font-serif text-base" id="btn-play-tts">Speak Now in Korean</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 4: REAL-TIME NAVER EXCHANGE RATE ==================== -->
+        <section id="view-exchange" class="tab-content hidden p-4 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="font-serif text-2xl font-bold text-vintage-dark" id="exch-title">Naver Exchange Desk</h2>
+            </div>
+            <!-- Sync Indicator showing dynamic loaded API values -->
+            <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-200" id="live-rate-status">LIVE SYNCED</span>
+          </div>
+
+          <!-- Main Exchange Panel -->
+          <div class="bg-white rounded-2xl p-5 vintage-border vintage-shadow space-y-5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-vintage-olive" id="lbl-source-notice">Exchange Rate Source:</span>
+              <span class="font-semibold text-vintage-dark flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> <span id="exch-source-label">Live Rate Sync</span>
+              </span>
+            </div>
+
+            <!-- Input Fields Base -->
+            <div class="space-y-4">
+              <!-- Select Target Currencies -->
+              <div>
+                <label class="block text-xs font-bold text-vintage-olive uppercase mb-1.5" id="lbl-target-currency">Target Currency</label>
+                <div class="grid grid-cols-5 gap-1.5">
+                  <button onclick="setCurrency('USD')" id="cur-btn-USD" class="cur-selector py-2 text-xs font-bold rounded-lg vintage-border bg-white transition hover:bg-vintage-beige">USD 🇺🇸</button>
+                  <button onclick="setCurrency('JPY')" id="cur-btn-JPY" class="cur-selector py-2 text-xs font-bold rounded-lg vintage-border bg-white transition hover:bg-vintage-beige">JPY 🇯🇵</button>
+                  <button onclick="setCurrency('CNY')" id="cur-btn-CNY" class="cur-selector py-2 text-xs font-bold rounded-lg vintage-border bg-white transition hover:bg-vintage-beige">CNY 🇨🇳</button>
+                  <button onclick="setCurrency('EUR')" id="cur-btn-EUR" class="cur-selector py-2 text-xs font-bold rounded-lg vintage-border bg-white transition hover:bg-vintage-beige">EUR 🇪🇺</button>
+                  <button onclick="setCurrency('VND')" id="cur-btn-VND" class="cur-selector py-2 text-xs font-bold rounded-lg vintage-border bg-white transition hover:bg-vintage-beige">VND 🇻🇳</button>
+                </div>
+                <div class="text-center mt-2 py-1.5 bg-vintage-terracotta/10 rounded-lg text-xs font-bold text-vintage-terracotta" id="current-rate-display">1 USD = 1,350 KRW</div>
+              </div>
+
+              <!-- Foreign Input Amount Box -->
+              <div class="bg-vintage-beige/30 p-3.5 rounded-xl border border-vintage-dark/5">
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-[11px] font-bold text-vintage-olive" id="lbl-foreign-amt">Foreign Amount</span>
+                  <span class="text-xs font-mono font-bold text-vintage-clay" id="foreign-symbol">USD ($)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="foreign-input" oninput="calculateExchange(true)" class="w-full bg-transparent font-serif text-2xl font-bold text-vintage-dark focus:outline-none" value="100" placeholder="0">
+                </div>
+              </div>
+
+              <!-- Arrow divider -->
+              <div class="flex justify-center -my-2">
+                <div class="w-8 h-8 rounded-full bg-vintage-terracotta text-white flex items-center justify-center vintage-shadow">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>
+                </div>
+              </div>
+
+              <!-- KRW Result Amount Box -->
+              <div class="bg-vintage-beige/30 p-3.5 rounded-xl border border-vintage-dark/5">
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-[11px] font-bold text-vintage-olive" id="lbl-krw-amt">Korean Won Result</span>
+                  <span class="text-xs font-mono font-bold text-vintage-olive">KRW (₩)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="krw-input" oninput="calculateExchange(false)" class="w-full bg-transparent font-serif text-2xl font-bold text-vintage-dark focus:outline-none" value="135000" placeholder="0">
+                </div>
+              </div>
+            </div>
+
+            <!-- Exchange Rates Information Info Box -->
+            <div class="bg-vintage-beige/40 p-3.5 rounded-xl text-[11px] text-vintage-olive space-y-1.5">
+              <span class="font-bold block uppercase" id="lbl-index-rates">Assumed Base Indexes (Naver High)</span>
+              <div class="grid grid-cols-2 gap-1 font-mono text-[10px]" id="live-rate-indices">
+                <div>1 USD = 1,350 KRW</div>
+                <div>100 JPY = 850 KRW</div>
+                <div>1 CNY = 185 KRW</div>
+                <div>1 EUR = 1,450 KRW</div>
+                <div>1,000 VND = 53 KRW</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Bottom Tab Navigation Bar (Vintage Styling) -->
+      <nav class="absolute bottom-0 inset-x-0 bg-white border-t border-vintage-dark/10 grid grid-cols-4 py-2 z-20 vintage-shadow">
+        <button onclick="switchTab('map')" id="nav-map" class="flex flex-col items-center gap-0.5 text-vintage-clay">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+          <span class="text-[9px] font-bold" id="nav-lbl-map">Map</span>
+        </button>
+        <button onclick="switchTab('scanner')" id="nav-scanner" class="flex flex-col items-center gap-0.5 text-vintage-olive hover:text-vintage-clay transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          <span class="text-[9px] font-bold" id="nav-lbl-scan">Scanner</span>
+        </button>
+        <button onclick="switchTab('tts')" id="nav-tts" class="flex flex-col items-center gap-0.5 text-vintage-olive hover:text-vintage-clay transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+          <span class="text-[9px] font-bold" id="nav-lbl-tts">Safe TTS</span>
+        </button>
+        <button onclick="switchTab('exchange')" id="nav-exchange" class="flex flex-col items-center gap-0.5 text-vintage-olive hover:text-vintage-clay transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span class="text-[9px] font-bold" id="nav-lbl-exch">Exchange</span>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- ==========================================
+         PROFILE SETUP & ALLERGY MODAL (GLOBAL SETTING)
+         ========================================== -->
+    <div id="profile-modal" class="fixed inset-0 bg-vintage-dark/60 backdrop-blur-sm z-[9999] flex items-end justify-center hidden">
+      <div class="bg-vintage-cream w-full max-w-md rounded-t-3xl p-6 vintage-border space-y-6 transform transition-transform duration-300 translate-y-full" id="profile-modal-body">
+        
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">👤</span>
+            <h2 class="font-serif text-xl font-bold text-vintage-dark" id="modal-profile-title">Update Travel Profile</h2>
+          </div>
+          <button onclick="closeProfileModal()" class="p-2 bg-vintage-beige/50 hover:bg-vintage-beige rounded-full transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+          <!-- Multi-language selection inside app -->
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-vintage-olive font-bold mb-2">Change App UI Language</label>
+            <div class="grid grid-cols-3 gap-1.5 text-center">
+              <button onclick="setLanguage('en')" id="modal-lang-en" class="modal-lang-selector py-2 px-1 text-xs rounded border border-vintage-dark/10 bg-white font-semibold">EN</button>
+              <button onclick="setLanguage('ja')" id="modal-lang-ja" class="modal-lang-selector py-2 px-1 text-xs rounded border border-vintage-dark/10 bg-white font-semibold">JA</button>
+              <button onclick="setLanguage('zh')" id="modal-lang-zh" class="modal-lang-selector py-2 px-1 text-xs rounded border border-vintage-dark/10 bg-white font-semibold">ZH</button>
+              <button onclick="setLanguage('vi')" id="modal-lang-vi" class="modal-lang-selector py-2 px-1 text-xs rounded border border-vintage-dark/10 bg-white font-semibold">VI</button>
+              <button onclick="setLanguage('es')" id="modal-lang-es" class="modal-lang-selector py-2 px-1 text-xs rounded border border-vintage-dark/10 bg-white font-semibold">ES</button>
+              <button onclick="setLanguage('ko')" id="modal-lang-ko" class="modal-lang-selector py-2 px-1 text-xs rounded border border-vintage-dark/10 bg-white font-semibold">KO</button>
+            </div>
+          </div>
+
+          <div class="h-[1px] bg-vintage-dark/10"></div>
+
+          <!-- Diet Select inside Modal -->
+          <div>
+            <label class="block text-xs font-bold text-vintage-olive uppercase mb-1" id="modal-lbl-diet">Dietary Standard</label>
+            <select id="modal-diet-select" onchange="syncModalDiet()" class="w-full text-xs p-2.5 rounded-lg bg-white vintage-border text-vintage-dark focus:outline-none">
+              <!-- Localized dynamically via JS -->
+            </select>
+          </div>
+
+          <!-- Spicy preferences inside Modal -->
+          <div>
+            <label class="block text-xs font-bold text-vintage-olive uppercase mb-1" id="modal-lbl-spicy">Spicy Threshold</label>
+            <div class="grid grid-cols-4 gap-1 text-center">
+              <button onclick="setSpicy(0)" id="modal-spicy-0" class="modal-spicy-selector p-2 text-xs rounded bg-white border border-vintage-dark/10">Mild</button>
+              <button onclick="setSpicy(1)" id="modal-spicy-1" class="modal-spicy-selector p-2 text-xs rounded bg-white border border-vintage-dark/10">Normal</button>
+              <button onclick="setSpicy(2)" id="modal-spicy-2" class="modal-spicy-selector p-2 text-xs rounded bg-white border border-vintage-dark/10">Hot 🔥</button>
+              <button onclick="setSpicy(3)" id="modal-spicy-3" class="modal-spicy-selector p-2 text-xs rounded bg-white border border-vintage-dark/10">Extreme 🌶️</button>
+            </div>
+            <div class="mt-2 p-2.5 bg-vintage-sage/10 border border-vintage-sage/20 rounded-lg text-[11px] text-vintage-olive leading-relaxed flex gap-1.5" id="modal-spicy-desc-box">
+              <span class="shrink-0">💡</span>
+              <span id="modal-spicy-desc-text">Most first-time visitors choose this level.</span>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="closeProfileModal()" class="w-full py-3 bg-vintage-dark hover:bg-vintage-terracotta text-white rounded-xl text-sm font-bold transition">
+          <span id="btn-save-profile">Apply Profile Settings</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TRAVELER REVIEWS MODAL (Foreigner Feedback)
+         ========================================== -->
+    <div id="reviews-modal" class="fixed inset-0 bg-vintage-dark/60 backdrop-blur-sm z-[9999] flex items-end justify-center hidden">
+      <div class="bg-vintage-cream w-full max-w-md rounded-t-3xl p-6 vintage-border space-y-5 transform transition-transform duration-300 translate-y-full max-h-[88vh] flex flex-col" id="reviews-modal-body">
+
+        <div class="flex justify-between items-center shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">⭐</span>
+            <h2 class="font-serif text-xl font-bold text-vintage-dark" id="reviews-modal-title">Traveler Reviews</h2>
+          </div>
+          <button onclick="closeReviewsModal()" class="p-2 bg-vintage-beige/50 hover:bg-vintage-beige rounded-full transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <p class="text-xs text-vintage-olive -mt-2 shrink-0" id="reviews-modal-food-name">Samgyeopsal</p>
+
+        <div class="space-y-3 overflow-y-auto flex-1 pr-1" id="reviews-list-container">
+          <!-- Dynamic review cards injected here -->
+        </div>
+
+        <!-- Add Review Form -->
+        <form onsubmit="submitReview(event)" class="bg-vintage-beige/30 p-4 rounded-xl space-y-3 vintage-border shrink-0">
+          <span class="text-xs font-bold text-vintage-olive uppercase" id="lbl-add-review">Add Your Review</span>
+          <div class="grid grid-cols-2 gap-2">
+            <select id="review-rating-input" class="text-xs p-2 rounded-lg bg-white vintage-border">
+              <option value="5">⭐ 5 - Excellent</option>
+              <option value="4">⭐ 4 - Good</option>
+              <option value="3">⭐ 3 - Average</option>
+              <option value="2">⭐ 2 - Bad</option>
+              <option value="1">⭐ 1 - Terrible</option>
+            </select>
+            <select id="review-spice-input" class="text-xs p-2 rounded-lg bg-white vintage-border">
+              <option value="1">🌶️ 1 - Not spicy</option>
+              <option value="2">🌶️ 2 - Mild</option>
+              <option value="3" selected>🌶️ 3 - Moderate</option>
+              <option value="4">🌶️ 4 - Very spicy</option>
+              <option value="5">🌶️ 5 - Extremely fiery</option>
+            </select>
+          </div>
+          <textarea id="review-comment-input" required placeholder="Share your experience..." class="w-full h-16 text-xs p-2.5 rounded-lg bg-white vintage-border focus:outline-none focus:ring-1 focus:ring-vintage-clay"></textarea>
+          <button type="submit" class="w-full py-2.5 bg-vintage-terracotta text-white rounded-lg text-xs font-bold hover:bg-vintage-dark transition" id="btn-submit-review">Submit Review</button>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==========================================
+       JAVASCRIPT LOGIC & STATE HANDLING
+       ========================================== -->
+  <script>
+    const state = {
+      lang: 'en',
+      activeTab: 'map',
+      selectedSpicy: 1, // 0: Mild, 1: Normal, 2: Hot, 3: Extreme
+      dietary: 'none',
+      selectedAllergies: new Set(),
+      customAllergies: [], // contains { original: 'Garlic', translated: '마늘' }
+      currentMapFilter: 'all',
+      selectedLocation: null,
+      cameraFile: null,
+      scannedResult: null,
+      targetCurrency: 'USD',
+      currencyIndex: {
+        USD: 1350,
+        JPY: 8.5,
+        CNY: 185,
+        EUR: 1450,
+        VND: 0.053
+      },
+      currentLocIdx: 0,
+      currentReviewFoodId: null,
+      isRealPhotoUpload: false,
+      uploadedImageDataUrl: null,
+      lastScannedDishNamesKo: [],
+      rateAsOfDate: null,
+      ttsQuestionType: 'allergy',
+      selectedDishIndex: 0,
+      lastScannedDishes: []
+    };
+
+    let mapInstance = null;
+    let mapMarkers = [];
+
+
+    // 19 Standard Food Allergens definition
+    const standardAllergens = [
+      { id: 'peanut', ko: '땅콩', en: 'Peanut', ja: 'ピーナッツ', zh: '花生', vi: 'Đậu phộng', es: 'Maní', icon: '🥜' },
+      { id: 'walnut', ko: '호두', en: 'Walnut', ja: 'クルミ', zh: '核桃', vi: 'Quả óc chó', es: 'Nuez', icon: '🪵' },
+      { id: 'pineneut', ko: '잣', en: 'Pine nut', ja: '松の実', zh: '松子', vi: 'Hạt thông', es: 'Piñón', icon: '🌲' },
+      { id: 'wheat', ko: '밀', en: 'Wheat', ja: '小麦', zh: '小麦', vi: 'Lúa mì', es: 'Trigo', icon: '🌾' },
+      { id: 'buckwheat', ko: '메밀', en: 'Buckwheat', ja: 'そば', zh: '荞麦', vi: 'Kiều mạch', es: 'Alforfón', icon: '🥣' },
+      { id: 'egg', ko: '계란', en: 'Egg', ja: '卵', zh: '鸡蛋', vi: 'Trứng', es: 'Huevo', icon: '🥚' },
+      { id: 'milk', ko: '우유', en: 'Milk', ja: '牛乳', zh: '牛奶', vi: 'Sữa', es: 'Leche', icon: '🥛' },
+      { id: 'shrimp', ko: '새우', en: 'Shrimp', ja: 'エビ', zh: '虾', vi: 'Tôm', es: 'Camarón', icon: '🦐' },
+      { id: 'crab', ko: '게', en: 'Crab', ja: 'カニ', zh: '螃蟹', vi: 'Cua', es: 'Cangrejo', icon: '🦀' },
+      { id: 'squid', ko: '오징어', en: 'Squid', ja: 'イカ', zh: '鱿鱼', vi: 'Mực', es: 'Calamar', icon: '🦑' },
+      { id: 'mackerel', ko: '고등어', en: 'Mackerel', ja: 'サバ', zh: '鲭鱼', vi: 'Cá thu', es: 'Caballa', icon: '🐟' },
+      { id: 'shellfish', ko: '조개류', en: 'Shellfish', ja: '貝類', zh: '贝类', vi: 'Nghêu sò', es: 'Mariscos', icon: '🦪' },
+      { id: 'soybean', ko: '대두', en: 'Soybean', ja: '大豆', zh: '大豆', vi: 'Đậu nành', es: 'Soya', icon: '🫘' },
+      { id: 'pork', ko: '돼지고기', en: 'Pork', ja: '豚肉', zh: '猪肉', vi: 'Thịt lợn', es: 'Cerdo', icon: '🐖' },
+      { id: 'beef', ko: '소고기', en: 'Beef', ja: '牛肉', zh: '牛肉', vi: 'Thịt bò', es: 'Res', icon: '🐂' },
+      { id: 'chicken', ko: '닭고기', en: 'Chicken', ja: '鶏肉', zh: '鸡肉', vi: 'Thịt gà', es: 'Pollo', icon: '🐓' },
+      { id: 'peach', ko: '복숭아', en: 'Peach', ja: '桃', zh: '桃子', vi: 'Đào', es: 'Melocotón', icon: '🍑' },
+      { id: 'tomato', ko: '토마토', en: 'Tomato', ja: 'トマト', zh: '西红柿', vi: 'Cà chua', es: 'Tomate', icon: '🍅' },
+      { id: 'sulfites', ko: '아황산류', en: 'Sulfites', ja: '亜硫酸塩', zh: '亚硫酸盐', vi: 'Chất sulfit', es: 'Sulfitos', icon: '🧪' }
+    ];
+
+    // Localizations
+    const translations = {
+      en: {
+        tagline: "Your Local Jeonpo Travel Companion",
+        footerTagline: "Jeonpo Restaurant & Cafe Guide with Traveler Reviews, by FitBridge",
+        quickProfile: "My Food Style",
+        diet: "Diet Options",
+        spicy: "My Spice Level",
+        beginBtn: "Get Started",
+        mapTitle: "Jeonpo Map",
+        navMapLabel: "Map",
+        mapSub: "Tap markers to discover menus & safety parameters",
+        allLocs: "All",
+        restLocs: "🍚 Restaurants",
+        cafeLocs: "☕ Cafes",
+        mainDish: "Main Speciality",
+        triggers: "Triggers in House",
+        scanBtn: "Scan Menu Here",
+        translateBtn: "Translate",
+        scanTitle: "Menu Translation",
+        navScanLabel: "Menu",
+        scanSub: "Snap or upload a menu to translate it and check ingredients",
+        scanLabel: "MENU CAM",
+        camTitle: "Add a Menu Photo",
+        camDesc: "Take a photo or upload a menu/table shot to translate and check ingredients",
+        detectedDishes: "Translated Menu Items",
+        ocrHeader: "Menu Translation Results",
+        score: "Matched Score",
+        safeTitle: "High Safety Matching",
+        safeDesc: "All identified ingredients align perfectly with your safety profile.",
+        warnTitle: "Verification Needed",
+        warnDesc: "Warning: Some elements need checking or might trigger mild preference match.",
+        crossDesc: "Caution: This dish may contain trace amounts of your allergen via shared sauces, broth, or seasoning. Please confirm with staff.",
+        dangerTitle: "High Allergen Danger!",
+        dangerDesc: "Danger! Identified ingredients match serious allergens in your profile.",
+        specName: "Dish Name",
+        specIngs: "Key Ingredients",
+        specAlls: "Known Allergens",
+        specSpicy: "Spice Level",
+        soundAlarm: "Ask Waiter in Korean",
+        ttsTitle: "Allergy Info",
+        navTtsLabel: "Allergy",
+        ttsSub: "Generate local Korean speech using your checked conditions",
+        ttsInfo: "No matter what language your UI is in, TTS output will always speak correct Korean to communicate effectively with waiters in Korea.",
+        checkAllergens: "Check Your Allergies",
+        clearAll: "Clear All",
+        customAllergy: "Other / Custom Allergies",
+        customPlaceholder: "e.g. Kiwi, Garlic, Sesame",
+        addBtn: "Add",
+        scriptTitle: "Live Korean Speech Draft",
+        playTts: "Guide My Allergy Info",
+        exchTitle: "Exchange Rate Calculator",
+        exchSub: "Real-time Korean Won conversion calculators",
+        exchSource: "Exchange Rate Source:",
+        targetCur: "Target Currency",
+        foreignAmt: "Foreign Amount",
+        krwAmt: "Korean Won Result",
+        baseIndexes: "Reference Exchange Rates",
+        applyProfile: "Apply Profile Settings",
+        updateProfile: "Update Travel Profile",
+        toastAllergyClear: "Cleared all allergen selections.",
+        toastCustomAdd: "Added custom allergen: ",
+        toastCustomRemove: "Removed custom allergen: ",
+        toastScanning: "Translating menu image...",
+        toastScanFail: "Please upload an image first to translate the menu.",
+        toastScanDone: "Menu translation complete!",
+        toastProfileSave: "Profile updated successfully!",
+        toastWelcomeBack: "Welcome back! Your saved profile has been loaded.",
+        toastAiError: "AI analysis failed. Please check your connection and try again.",
+        toastImageTooLarge: "This photo is too large to process. Please try a different photo, or open this site in Safari/Chrome instead of an in-app browser.",
+        qtypeAllergy: "Allergy",
+        qtypeTaste: "Taste?",
+        qtypePopularity: "Popular?",
+        askPopularBtn: "Ask About Popular Dish",
+        resetConfirm: "Reset all saved settings and return to the start screen?",
+        howToEatLabel: "How to Eat (Korean Way)",
+        viewReviewsBtn: "View Reviews",
+        toastTtsFail: "TTS Speech is not supported on this browser or voice is loading.",
+        toastTtsSuccess: "Playing Korean Translation Speech...",
+        translatingFeedback: "Translating custom allergen to Korean...",
+        liveSyncedText: "Rate as of",
+        naverTitle: "Exchange Rate Data",
+        dietNone: "None / 없음",
+        dietVegan: "Vegan / 비건",
+        dietHalal: "Halal / 할랄",
+        dietVegetarian: "Vegetarian / 채식",
+        spicyMild: "Mild",
+        spicyNormal: "Normal",
+        spicyHot: "Hot 🔥",
+        spicyExtreme: "Extreme 🌶️",
+        spicyDesc0: "The safest level for travelers visiting Korea for the first time. You can comfortably enjoy Korean flavors with zero spice, like samgyeopsal, soy-marinated bulgogi, and rolled egg.",
+        spicyDesc1: "A middle step for those who want to try a little spice. You can happily enjoy rinsed (mild) kimchi, non-spicy seafood pancake, or a savory doenjang stew.",
+        spicyDesc2: "For travelers who know how to enjoy a spicy kick. If you can happily eat regular red kimchi, sweet-and-spicy yangnyeom chicken, and Korea's classic spicy ramen (Shin Ramyun level), this is for you.",
+        spicyDesc3: "For true spice lovers who want to experience Korea's real heat. If buldak bokkeum-myeon or sweat-inducing spicy tteokbokki are no problem for you, take on this level right now!"
+      },
+      ja: {
+        tagline: "地元密着の田浦旅行コンパニオン",
+        footerTagline: "田浦グルメ&カフェガイド × 旅行者レビュー by FitBridge",
+        quickProfile: "マイフードスタイル",
+        diet: "食事オプション",
+        spicy: "私の辛さレベル",
+        beginBtn: "はじめる",
+        mapTitle: "田浦マップ",
+        navMapLabel: "マップ",
+        mapSub: "マーカーをタップしてメニューと安全性基準を確認",
+        allLocs: "すべて",
+        restLocs: "🍚 食堂",
+        cafeLocs: "☕ カフェ",
+        mainDish: "看板メニュー",
+        triggers: "アレルゲン候補",
+        scanBtn: "この店舗のメニューをスキャン",
+        translateBtn: "翻訳",
+        scanTitle: "メニュー翻訳",
+        navScanLabel: "メニュー",
+        scanSub: "メニューを撮影またはアップロードして翻訳し、成分を確認",
+        scanLabel: "メニューカメラ",
+        camTitle: "メニュー写真を追加",
+        camDesc: "メニューやテーブルの写真を撮影またはアップロードして翻訳・成分チェック",
+        detectedDishes: "翻訳されたメニュー",
+        ocrHeader: "メニュー翻訳結果",
+        score: "一致スコア",
+        safeTitle: "高い安全一致度",
+        safeDesc: "検出されたすべての食材があなたのプロファイルと安全に適合しています。",
+        warnTitle: "店舗への確認が必要",
+        warnDesc: "警告：いくつかの成分を確認する必要があるか、辛さ基準と不一致です。",
+        crossDesc: "注意：この料理は、共有のソースやスープ、調味料経由でアレルゲンが微量含まれる可能性があります。店員にご確認ください。",
+        dangerTitle: "高アレルギー危険！",
+        dangerDesc: "危険！検出された食材がアレルギー登録物質と一致しています。",
+        specName: "料理名",
+        specIngs: "主な原材料",
+        specAlls: "特定アレルゲン",
+        specSpicy: "辛さレベル",
+        soundAlarm: "韓国語で店員に尋ねる",
+        ttsTitle: "アレルギー情報",
+        navTtsLabel: "アレルギー",
+        ttsSub: "アレルギー設定に基づき、現地韓国語で音声を合成します",
+        ttsInfo: "選択されたUI言語に関わらず、店員へ確実に意思伝達を行うため、TTS音声は常に正確な韓国語で出力されます。",
+        checkAllergens: "アレルギー成分チェック",
+        clearAll: "すべて解除",
+        customAllergy: "その他・個別に入力",
+        customPlaceholder: "例：キウイ、ニンニク、ゴマ",
+        addBtn: "追加",
+        scriptTitle: "韓国語音声の原稿",
+        playTts: "アレルギー情報を伝える",
+        exchTitle: "為替レート計算機",
+        exchSub: "リアルタイム韓国ウォン換算計算機",
+        exchSource: "為替レート参照元:",
+        targetCur: "基準通貨",
+        foreignAmt: "外貨金額",
+        krwAmt: "大韓民国ウォン (KRW)",
+        baseIndexes: "為替レート一覧",
+        applyProfile: "プロファイルを適用する",
+        updateProfile: "旅行プロファイルを変更",
+        toastAllergyClear: "すべてのアレルギー選択をクリアしました。",
+        toastCustomAdd: "カスタムアレルギーを追加しました: ",
+        toastCustomRemove: "カスタムアレルギーを削除しました: ",
+        toastScanning: "メニューを翻訳中...",
+        toastScanFail: "翻訳するには先に画像をアップロードしてください。",
+        toastScanDone: "メニューの翻訳が完了しました！",
+        toastProfileSave: "プロファイル設定が更新されました！",
+        toastWelcomeBack: "おかえりなさい！保存されたプロファイルを読み込みました。",
+        toastAiError: "AI解析に失敗しました。接続を確認してもう一度お試しください。",
+        toastImageTooLarge: "この写真は大きすぎます。別の写真を試すか、アプリ内ブラウザではなくSafari/Chromeで開いてください。",
+        qtypeAllergy: "アレルギー",
+        qtypeTaste: "味は？",
+        qtypePopularity: "人気？",
+        askPopularBtn: "人気メニューを尋ねる",
+        resetConfirm: "保存された設定をすべてリセットして、最初の画面に戻りますか？",
+        howToEatLabel: "食べ方（韓国流）",
+        viewReviewsBtn: "レビューを見る",
+        toastTtsFail: "ブラウザがTTS音声合成をサポートしていないか、音声データ準備中です。",
+        toastTtsSuccess: "韓国語翻訳音声を再生しています...",
+        translatingFeedback: "韓国語に翻訳中...",
+        liveSyncedText: "時点",
+        naverTitle: "為替データ",
+        dietNone: "制限なし",
+        dietVegan: "ビーガン",
+        dietHalal: "ハラール",
+        dietVegetarian: "ベジタリアン",
+        spicyMild: "マイルド",
+        spicyNormal: "普通",
+        spicyHot: "辛い 🔥",
+        spicyExtreme: "激辛 🌶️",
+        spicyDesc0: "初めて韓国を訪れる旅行者にとって最も安全なレベルです。サムギョプサル、醤油味プルコギ、卵焼きなど、辛さゼロの韓国の味を安心して楽しめます。",
+        spicyDesc1: "少しずつ辛さに挑戦したい方向けの中間レベルです。水キムチや辛くない海鮮チヂミ、香り豊かなテンジャンチゲくらいなら気持ちよく楽しめます。",
+        spicyDesc2: "ピリッとした辛さを楽しめる旅行者向けのレベルです。普通の赤いキムチ、甘辛いヤンニョムチキン、韓国の代表的な辛ラーメン（辛ラーメンレベル）を美味しく食べられるならおすすめです。",
+        spicyDesc3: "韓国人の本当の辛さを体験したい辛党（スパイスラバー）向けのレベルです。プルダックポックンミョンや汗が出るほど辛いトッポギも平気なら、今すぐ挑戦してみましょう！"
+      },
+      zh: {
+        tagline: "您的本地田浦旅行伙伴",
+        footerTagline: "田浦美食咖啡指南与旅行者点评 by FitBridge",
+        quickProfile: "我的饮食风格",
+        diet: "饮食选项",
+        spicy: "我的辣度等级",
+        beginBtn: "开始",
+        mapTitle: "田浦地图",
+        navMapLabel: "地图",
+        mapSub: "点击标记查找菜单与安全参数",
+        allLocs: "全部",
+        restLocs: "🍚 餐厅",
+        cafeLocs: "☕ 咖啡厅",
+        mainDish: "特色招牌菜",
+        triggers: "过敏原预警",
+        scanBtn: "扫描该店菜单",
+        translateBtn: "翻译",
+        scanTitle: "菜单翻译",
+        navScanLabel: "菜单",
+        scanSub: "拍照或上传菜单进行翻译并查看成分",
+        scanLabel: "菜单相机",
+        camTitle: "添加菜单照片",
+        camDesc: "拍摄或上传菜单/餐桌照片以翻译并检查成分",
+        detectedDishes: "已翻译的菜品",
+        ocrHeader: "菜单翻译结果",
+        score: "配对得分",
+        safeTitle: "安全匹配度高",
+        safeDesc: "所有识别出的成分完全符合您的安全个人档案。",
+        warnTitle: "需要与店家确认",
+        warnDesc: "警告：部分成分需要二次确认，或辣度可能不契合。",
+        crossDesc: "注意：该菜品可能通过共用的酱料、汤底或调味料含有微量过敏原，请与店员确认。",
+        dangerTitle: "过敏原严重危险！",
+        dangerDesc: "危险！识别出的成分与您个人档案中的严重过敏原相吻合。",
+        specName: "菜品名称",
+        specIngs: "主要配料",
+        specAlls: "已知过敏原",
+        specSpicy: "辣度级别",
+        soundAlarm: "用韩语语音询问店员",
+        ttsTitle: "过敏信息",
+        navTtsLabel: "过敏",
+        ttsSub: "根据您勾选 of 过敏原，自动生成韩语语音",
+        ttsInfo: "无论您的界面语言为何，TTS语音始终会以准确的韩语输出，以确保与当地服务人员进行清晰无误的沟通。",
+        checkAllergens: "勾选您的过敏原",
+        clearAll: "全部清除",
+        customAllergy: "其他 / 自定义过敏原",
+        customPlaceholder: "例如：猕猴桃、大蒜、芝麻",
+        addBtn: "添加",
+        scriptTitle: "韩语语音播报草稿",
+        playTts: "告知过敏信息",
+        exchTitle: "汇率计算器",
+        exchSub: "韩元双向快捷计算器",
+        exchSource: "汇率数据源:",
+        targetCur: "目标货币",
+        foreignAmt: "外币金额",
+        krwAmt: "折合韩元 (KRW)",
+        baseIndexes: "参考汇率",
+        applyProfile: "应用个人档案设置",
+        updateProfile: "更改旅行个人档案",
+        toastAllergyClear: "已清除所有选中的过敏原。",
+        toastCustomAdd: "已添加自定义过敏原: ",
+        toastCustomRemove: "已移除自定义过敏原: ",
+        toastScanning: "正在翻译菜单...",
+        toastScanFail: "请先上传图片以翻译菜单。",
+        toastScanDone: "菜单翻译完成！",
+        toastProfileSave: "个人设置已成功更新！",
+        toastWelcomeBack: "欢迎回来！已加载您保存的个人档案。",
+        toastAiError: "AI 分析失败。请检查网络连接后重试。",
+        toastImageTooLarge: "该照片过大，请尝试其他照片，或使用 Safari/Chrome 而非应用内浏览器打开本站。",
+        qtypeAllergy: "过敏",
+        qtypeTaste: "口味？",
+        qtypePopularity: "受欢迎吗？",
+        askPopularBtn: "询问人气菜品",
+        resetConfirm: "确定要重置所有已保存的设置并返回初始界面吗？",
+        howToEatLabel: "吃法（韩式）",
+        viewReviewsBtn: "查看评价",
+        toastTtsFail: "此浏览器不支持TTS语音，或语音引擎尚未准备好。",
+        toastTtsSuccess: "正在播放韩语翻译语音...",
+        translatingFeedback: "正在翻译至韩语...",
+        liveSyncedText: "汇率时间",
+        naverTitle: "汇率数据",
+        dietNone: "无限制",
+        dietVegan: "纯素食",
+        dietHalal: "清真",
+        dietVegetarian: "素食",
+        spicyMild: "微辣",
+        spicyNormal: "中辣",
+        spicyHot: "特辣 🔥",
+        spicyExtreme: "魔鬼辣 🌶️",
+        spicyDesc0: "对第一次来韩国旅行的游客来说最安全的等级。您可以放心享用五花肉、酱汁烤肉（不辣）、鸡蛋卷等完全不辣的韩式风味。",
+        spicyDesc1: "适合想稍微尝试一点辣味的中间等级。您可以愉快地享用水泡菜、不辣的海鲜葱饼，或香浓的大酱汤。",
+        spicyDesc2: "适合懂得享受微辣口味的旅行者。如果您能开心地吃普通的红色泡菜、甜辣的调味炸鸡，以及韩国代表性的辛辣拉面（辛拉面级别），推荐选择这个等级。",
+        spicyDesc3: "适合想体验韩国人真正辣味的嗜辣达人（Spice Lover）。如果火鸡拌面或让人冒汗的辣炒年糕都不成问题，那就立刻挑战这个等级吧！"
+      },
+      vi: {
+        tagline: "Người Bạn Đồng Hành Du Lịch Jeonpo",
+        footerTagline: "Hướng Dẫn Nhà Hàng & Cà Phê Jeonpo cùng Đánh Giá Du Khách, by FitBridge",
+        quickProfile: "Phong Cách Ăn Của Tôi",
+        diet: "Tùy Chọn Ăn Kiêng",
+        spicy: "Mức Độ Cay Của Tôi",
+        beginBtn: "Bắt Đầu",
+        mapTitle: "Bản Đồ Jeonpo",
+        navMapLabel: "Bản Đồ",
+        mapSub: "Nhấp vào các điểm để tìm hiểu thực đơn và chỉ số an toàn",
+        allLocs: "Tất cả",
+        restLocs: "🍚 Nhà hàng",
+        cafeLocs: "☕ Quán Cafe",
+        mainDish: "Món Đặc Trưng",
+        triggers: "Thành Phần Cần Lưu Ý",
+        scanBtn: "Quét Thực Đơn Tại Đây",
+        translateBtn: "Dịch",
+        scanTitle: "Dịch Thực Đơn",
+        navScanLabel: "Thực Đơn",
+        scanSub: "Chụp hoặc tải thực đơn lên để dịch và kiểm tra thành phần",
+        scanLabel: "CAMERA THỰC ĐƠN",
+        camTitle: "Thêm Ảnh Thực Đơn",
+        camDesc: "Chụp hoặc tải ảnh thực đơn/bàn ăn để dịch và kiểm tra thành phần",
+        detectedDishes: "Món Ăn Đã Dịch",
+        ocrHeader: "Kết Quả Dịch Thực Đơn",
+        score: "Độ Khớp",
+        safeTitle: "Mức Độ An Toàn Cao",
+        safeDesc: "Tất cả các nguyên liệu được phát hiện đều phù hợp tuyệt đối với hồ sơ của bạn.",
+        warnTitle: "Cần Xác Nhận Lại",
+        warnDesc: "Cảnh báo: Một số thành phần cần được kiểm tra hoặc có độ cay chưa phù hợp.",
+        crossDesc: "Lưu ý: Món này có thể chứa một lượng nhỏ dị nguyên do dùng chung nước sốt, nước dùng hoặc gia vị. Vui lòng xác nhận với nhân viên.",
+        dangerTitle: "Nguy Hiểm Dị Ứng Cao!",
+        dangerDesc: "Nguy hiểm! Thành phần được phát hiện trùng với dị ứng nghiêm trọng của bạn.",
+        specName: "Tên Món Ăn",
+        specIngs: "Thành Phần Chính",
+        specAlls: "Dị Ứng Phát Hiện",
+        specSpicy: "Mức Độ Cay",
+        soundAlarm: "Hỏi Phục Vụ Bằng Tiếng Hàn",
+        ttsTitle: "Thông Tin Dị Ứng",
+        navTtsLabel: "Dị Ứng",
+        ttsSub: "Tạo phát âm tiếng Hàn dựa trên các điều kiện đã chọn",
+        ttsInfo: "Dù giao diện ở ngôn ngữ nào, TTS luôn phát âm bằng tiếng Hàn chính xác để bạn giao tiếp dễ dàng với phục vụ tại Hàn Quốc.",
+        checkAllergens: "Chọn Chất Gây Dị Ứng",
+        clearAll: "Xoá Tất Cả",
+        customAllergy: "Khác / Nhập Trực Tiếp",
+        customPlaceholder: "Ví dụ: Kiwi, tỏi, vừng",
+        addBtn: "Thêm",
+        scriptTitle: "Bản Thảo Giọng Nói Tiếng Hàn",
+        playTts: "Thông Báo Dị Ứng",
+        exchTitle: "Máy Tính Tỷ Giá",
+        exchSub: "Bộ tính đổi tỷ giá won Hàn Quốc thực tế",
+        exchSource: "Nguồn dữ liệu tỷ giá:",
+        targetCur: "Ngoại Tệ",
+        foreignAmt: "Số Tiền Ngoại Tệ",
+        krwAmt: "Kết Quả Won Hàn (KRW)",
+        baseIndexes: "Tỷ Giá Tham Khảo",
+        applyProfile: "Áp Dụng Thiết Lập",
+        updateProfile: "Cập Nhật Hồ Sơ Du Lịch",
+        toastAllergyClear: "Đã xoá toàn bộ lựa chọn dị ứng.",
+        toastCustomAdd: "Đã thêm dị ứng tùy chỉnh: ",
+        toastCustomRemove: "Đã xóa dị ứng tùy chỉnh: ",
+        toastScanning: "Đang dịch thực đơn...",
+        toastScanFail: "Vui lòng tải ảnh lên trước để dịch thực đơn.",
+        toastScanDone: "Dịch thực đơn hoàn tất!",
+        toastProfileSave: "Cập nhật hồ sơ thành công!",
+        toastWelcomeBack: "Chào mừng trở lại! Hồ sơ đã lưu của bạn đã được tải.",
+        toastAiError: "Phân tích AI thất bại. Vui lòng kiểm tra kết nối và thử lại.",
+        toastImageTooLarge: "Ảnh này quá lớn. Vui lòng thử ảnh khác, hoặc mở trang này bằng Safari/Chrome thay vì trình duyệt trong ứng dụng.",
+        qtypeAllergy: "Dị Ứng",
+        qtypeTaste: "Vị Thế Nào?",
+        qtypePopularity: "Có Phổ Biến?",
+        askPopularBtn: "Hỏi Về Món Phổ Biến",
+        resetConfirm: "Đặt lại toàn bộ thiết lập đã lưu và quay về màn hình bắt đầu?",
+        howToEatLabel: "Cách Ăn (Kiểu Hàn Quốc)",
+        viewReviewsBtn: "Xem Đánh Giá",
+        toastTtsFail: "Trình duyệt không hỗ trợ dịch vụ TTS hoặc giọng nói đang tải.",
+        toastTtsSuccess: "Đang phát giọng nói tiếng Hàn...",
+        translatingFeedback: "Đang dịch sang tiếng Hàn...",
+        liveSyncedText: "Tính đến",
+        naverTitle: "Dữ Liệu Tỷ Giá",
+        dietNone: "Không có",
+        dietVegan: "Ăn chay thuần",
+        dietHalal: "Đồ ăn Halal",
+        dietVegetarian: "Ăn chay",
+        spicyMild: "Không cay",
+        spicyNormal: "Cay vừa",
+        spicyHot: "Khá cay 🔥",
+        spicyExtreme: "Siêu cay 🌶️",
+        spicyDesc0: "Mức an toàn nhất cho du khách lần đầu đến Hàn Quốc. Bạn có thể yên tâm thưởng thức các món hoàn toàn không cay như thịt ba chỉ nướng, bulgogi sốt tương và trứng cuộn.",
+        spicyDesc1: "Mức trung bình cho những ai muốn thử một chút cay. Bạn có thể vui vẻ ăn kim chi đã rửa (ít cay), bánh xèo hải sản không cay, hoặc canh tương đậu thơm ngon.",
+        spicyDesc2: "Dành cho du khách biết thưởng thức vị cay nồng. Nếu bạn có thể ăn ngon miệng kim chi đỏ thông thường, gà chiên sốt cay ngọt, và mì cay nổi tiếng của Hàn Quốc (mức độ như Shin Ramyun), đây là mức phù hợp với bạn.",
+        spicyDesc3: "Dành cho những người mê cay (Spice Lover) thực sự muốn trải nghiệm vị cay đích thực của người Hàn. Nếu mì trộn gà cay buldak hay tokbokki cay đến chảy mồ hôi không là vấn đề, hãy thử ngay mức này!"
+      },
+      es: {
+        tagline: "Tu Compañero de Viaje Local en Jeonpo",
+        footerTagline: "Guía de Restaurantes y Cafés de Jeonpo con Reseñas de Viajeros, por FitBridge",
+        quickProfile: "Mi Estilo de Comida",
+        diet: "Opciones Dietéticas",
+        spicy: "Mi Nivel de Picante",
+        beginBtn: "Comenzar",
+        mapTitle: "Mapa de Jeonpo",
+        navMapLabel: "Mapa",
+        mapSub: "Toca los marcadores para ver menús y parámetros de seguridad",
+        allLocs: "Todo",
+        restLocs: "🍚 Restaurantes",
+        cafeLocs: "☕ Cafés",
+        mainDish: "Especialidad Principal",
+        triggers: "Alérgenos del Local",
+        scanBtn: "Escanear Menú Aquí",
+        translateBtn: "Traducir",
+        scanTitle: "Traducción de Menú",
+        navScanLabel: "Menú",
+        scanSub: "Toma o sube una foto del menú para traducirlo y revisar ingredientes",
+        scanLabel: "CÁMARA DE MENÚ",
+        camTitle: "Añade una Foto del Menú",
+        camDesc: "Toma o sube una foto del menú o la mesa para traducir y revisar ingredientes",
+        detectedDishes: "Platos Traducidos",
+        ocrHeader: "Resultado de la Traducción",
+        score: "Puntuación de Coincidencia",
+        safeTitle: "Alta Coincidencia de Seguridad",
+        safeDesc: "Todos los ingredientes identificados se alinean perfectamente con tu perfil.",
+        warnTitle: "Verificación Requerida",
+        warnDesc: "Advertencia: Algunos elementos necesitan comprobarse o pueden diferir de tu nivel de picante.",
+        crossDesc: "Precaución: Este plato puede contener rastros de tu alérgeno a través de salsas, caldo o condimentos compartidos. Confirma con el personal.",
+        dangerTitle: "¡Peligro Alto de Alérgenos!",
+        dangerDesc: "¡Peligro! Los ingredientes detectados coinciden con alérgenos graves de tu perfil.",
+        specName: "Nombre del Plato",
+        specIngs: "Ingredientes Clave",
+        specAlls: "Alérgenos Conocidos",
+        specSpicy: "Nivel de Picante",
+        soundAlarm: "Preguntar al Camarero en Coreano",
+        ttsTitle: "Información de Alergia",
+        navTtsLabel: "Alergia",
+        ttsSub: "Genera voz coreana local según tus condiciones seleccionadas",
+        ttsInfo: "Sin importar el idioma de tu interfaz, la salida de voz (TTS) siempre se hablará en coreano correcto para comunicarte con los camareros en Corea.",
+        checkAllergens: "Selecciona tus Alérgenos",
+        clearAll: "Limpiar Todo",
+        customAllergy: "Otros / Alérgenos Personalizados",
+        customPlaceholder: "Ej: Kiwi, ajo, sésamo",
+        addBtn: "Añadir",
+        scriptTitle: "Borrador de Discurso en Coreano",
+        playTts: "Informar mi Alergia",
+        exchTitle: "Calculadora de Cambio",
+        exchSub: "Calculadora de conversión de Won coreanos en tiempo real",
+        exchSource: "Origen del tipo de cambio:",
+        targetCur: "Moneda Objetivo",
+        foreignAmt: "Monto Extranjero",
+        krwAmt: "Resultado en Won Coreano (KRW)",
+        baseIndexes: "Tipos de Cambio de Referencia",
+        applyProfile: "Aplicar Configuración",
+        updateProfile: "Actualizar Perfil de Viaje",
+        toastAllergyClear: "Se limpiaron todas las selecciones de alérgenos.",
+        toastCustomAdd: "Se añadió alérgeno personalizado: ",
+        toastCustomRemove: "Se quitó alérgeno personalizado: ",
+        toastScanning: "Traduciendo el menú...",
+        toastScanFail: "Sube una imagen primero para traducir el menú.",
+        toastScanDone: "¡Traducción del menú completa!",
+        toastProfileSave: "¡Perfil actualizado con éxito!",
+        toastWelcomeBack: "¡Bienvenido de nuevo! Se cargó tu perfil guardado.",
+        toastAiError: "El análisis de IA falló. Revisa tu conexión e inténtalo de nuevo.",
+        toastImageTooLarge: "Esta foto es demasiado grande. Prueba con otra foto, o abre este sitio en Safari/Chrome en lugar del navegador integrado de la app.",
+        qtypeAllergy: "Alergia",
+        qtypeTaste: "¿Sabor?",
+        qtypePopularity: "¿Popular?",
+        askPopularBtn: "Preguntar por el Plato Popular",
+        resetConfirm: "¿Restablecer toda la configuración guardada y volver a la pantalla inicial?",
+        howToEatLabel: "Cómo Comerlo (Al Estilo Coreano)",
+        viewReviewsBtn: "Ver Reseñas",
+        toastTtsFail: "TTS no está soportado en este navegador o la voz se está cargando.",
+        toastTtsSuccess: "Reproduciendo voz traducida al coreano...",
+        translatingFeedback: "Traduciendo al coreano...",
+        liveSyncedText: "Al",
+        naverTitle: "Datos de Cambio",
+        dietNone: "Ninguna",
+        dietVegan: "Vegano",
+        dietHalal: "Halal",
+        dietVegetarian: "Vegetariano",
+        spicyMild: "Suave",
+        spicyNormal: "Normal",
+        spicyHot: "Picante 🔥",
+        spicyExtreme: "Extremo 🌶️",
+        spicyDesc0: "El nivel más seguro para viajeros que visitan Corea por primera vez. Puedes disfrutar tranquilamente de sabores coreanos sin nada de picante, como samgyeopsal, bulgogi marinado en soja y tortilla de huevo enrollada.",
+        spicyDesc1: "Un nivel intermedio para quienes quieren atreverse un poco con el picante. Puedes disfrutar felizmente de kimchi suave (lavado), panqueque de mariscos sin picante, o un sabroso guiso de doenjang.",
+        spicyDesc2: "Para viajeros que saben disfrutar de un toque picante. Si puedes comer con gusto el kimchi rojo normal, el pollo yangnyeom dulce y picante, y el famoso ramen picante de Corea (nivel Shin Ramyun), este nivel es para ti.",
+        spicyDesc3: "Para los verdaderos amantes del picante (Spice Lovers) que quieren experimentar el picante auténtico de Corea. Si el buldak bokkeum-myeon o el tteokbokki picante que hace sudar no son un problema para ti, ¡anímate a probar este nivel ahora mismo!"
+      },
+      ko: {
+        tagline: "전포 가이드 서비스",
+        footerTagline: "전포 맛집·카페 가이드 & 리뷰, by FitBridge",
+        quickProfile: "나의 음식 스타일",
+        diet: "식단 옵션",
+        spicy: "나의 매운맛 레벨",
+        beginBtn: "시작하기",
+        mapTitle: "전포 지도",
+        navMapLabel: "지도",
+        mapSub: "마커를 눌러 메뉴와 안전 정보를 확인하세요",
+        allLocs: "전체",
+        restLocs: "🍚 식당",
+        cafeLocs: "☕ 카페",
+        mainDish: "대표 메뉴",
+        triggers: "주의 성분",
+        scanBtn: "이 가게 메뉴 스캔하기",
+        translateBtn: "번역",
+        scanTitle: "메뉴판 번역",
+        navScanLabel: "메뉴",
+        scanSub: "메뉴판을 촬영하거나 업로드해서 번역하고 성분을 확인하세요",
+        scanLabel: "메뉴 카메라",
+        camTitle: "메뉴판 사진 추가하기",
+        camDesc: "메뉴판이나 테이블 사진을 촬영하거나 업로드하면 번역과 성분 확인을 시작합니다",
+        detectedDishes: "번역된 메뉴",
+        ocrHeader: "메뉴판 번역 결과",
+        score: "일치율",
+        safeTitle: "안전도 높음",
+        safeDesc: "감지된 모든 성분이 회원님의 안전 프로필과 완벽히 일치합니다.",
+        warnTitle: "확인이 필요해요",
+        warnDesc: "주의: 일부 성분은 확인이 필요하거나 맵기 취향과 다를 수 있습니다.",
+        crossDesc: "주의: 이 음식은 공유 소스, 국물, 양념을 통해 알레르기 유발 성분이 소량 포함될 수 있습니다. 직원에게 확인해 주세요.",
+        dangerTitle: "알레르기 위험 높음!",
+        dangerDesc: "위험! 감지된 성분이 프로필에 등록된 심각한 알레르기 항목과 일치합니다.",
+        specName: "음식 이름",
+        specIngs: "주요 성분",
+        specAlls: "알려진 알레르기 성분",
+        specSpicy: "맵기 단계",
+        soundAlarm: "한국어로 직원에게 질문하기",
+        ttsTitle: "알레르기",
+        navTtsLabel: "알레르기",
+        ttsSub: "체크한 조건을 바탕으로 한국어 음성을 생성합니다",
+        ttsInfo: "앱 화면 언어가 무엇이든, TTS 음성은 항상 정확한 한국어로 출력되어 한국 현지 직원과 원활하게 소통할 수 있습니다.",
+        checkAllergens: "알레르기 항목 체크하기",
+        clearAll: "전체 해제",
+        customAllergy: "기타 / 직접 입력",
+        customPlaceholder: "예: 키위, 마늘, 참깨",
+        addBtn: "추가",
+        scriptTitle: "실시간 한국어 발화 초안",
+        playTts: "알레르기 안내하기",
+        exchTitle: "환율 계산기",
+        exchSub: "실시간 원화 환율 계산기",
+        exchSource: "환율 출처:",
+        targetCur: "기준 화폐",
+        foreignAmt: "외화 금액",
+        krwAmt: "원화(KRW) 결과",
+        baseIndexes: "환율 목록",
+        applyProfile: "프로필 설정 적용",
+        updateProfile: "여행 프로필 수정",
+        toastAllergyClear: "모든 알레르기 선택이 해제되었습니다.",
+        toastCustomAdd: "직접 입력한 알레르기 추가: ",
+        toastCustomRemove: "직접 입력한 알레르기 삭제: ",
+        toastScanning: "메뉴판을 번역하는 중...",
+        toastScanFail: "번역하려면 먼저 이미지를 업로드해 주세요.",
+        toastScanDone: "메뉴판 번역이 완료되었습니다!",
+        toastProfileSave: "프로필이 성공적으로 업데이트되었습니다!",
+        toastWelcomeBack: "다시 오신 것을 환영합니다! 저장된 프로필을 불러왔어요.",
+        toastAiError: "AI 분석에 실패했습니다. 연결 상태를 확인하고 다시 시도해주세요.",
+        toastImageTooLarge: "이 사진은 용량이 너무 큽니다. 다른 사진으로 시도하거나, 인앱 브라우저 대신 Safari/Chrome에서 열어주세요.",
+        qtypeAllergy: "알레르기",
+        qtypeTaste: "맛이 어때요?",
+        qtypePopularity: "인기 있나요?",
+        askPopularBtn: "인기 메뉴 물어보기",
+        resetConfirm: "저장된 모든 설정을 초기화하고 처음 화면으로 돌아갈까요?",
+        howToEatLabel: "한국식으로 먹는 법",
+        viewReviewsBtn: "리뷰 보기",
+        toastTtsFail: "이 브라우저에서는 TTS를 지원하지 않거나 음성 로딩 중입니다.",
+        toastTtsSuccess: "한국어 번역 음성을 재생 중입니다...",
+        translatingFeedback: "한국어로 번역 중...",
+        liveSyncedText: "환율 기준",
+        naverTitle: "환율 정보",
+        dietNone: "제한 없음",
+        dietVegan: "비건",
+        dietHalal: "할랄",
+        dietVegetarian: "채식",
+        spicyMild: "안 매움",
+        spicyNormal: "보통",
+        spicyHot: "매움 🔥",
+        spicyExtreme: "아주 매움 🌶️",
+        spicyDesc0: "처음 한국을 방문하는 여행자에게 가장 안전한 단계입니다. 삼겹살, 간장 불고기, 계란말이처럼 매운맛이 전혀 없는 한국의 맛을 편안하게 즐길 수 있어요.",
+        spicyDesc1: "매운 음식에 조금씩 도전해 보고 싶은 분들을 위한 중간 단계입니다. 씻은 김치나 맵지 않은 해물파전, 구수한 된장찌개 정도를 기분 좋게 즐길 수 있어요.",
+        spicyDesc2: "매콤한 맛을 즐길 줄 아는 여행자를 위한 단계입니다. 일반적인 빨간 김치, 달콤매콤한 양념치킨, 그리고 한국의 대표적인 매운 라면(신라면 수준)을 맛있게 드실 수 있다면 추천해요.",
+        spicyDesc3: "한국인의 진짜 매운맛을 경험하고 싶은 맵고수(Spice Lover)를 위한 단계입니다. 불닭볶음면이나 땀이 나는 매운 떡볶이도 문제없이 즐길 수 있다면 당장 도전해 보세요!"
+      }
+    };
+
+    // Preloaded locations on Jeonpo Cafe Street, Busan
+    const locations = [
+      {
+        id: 0,
+        name: "Jeonpo Solgup Samgyeopsal",
+        nameKo: "전포 솥굽 삼겹살",
+        category: "restaurant",
+        categoryDisplay: { en: "KOREAN RESTAURANT", ja: "韓国焼肉・食堂", zh: "韩式烤肉店", vi: "Nhà Hàng Đồ Nướng", es: "RESTAURANTE COREANO", ko: "한식 고깃집" },
+        rating: "4.8",
+        desc: {
+          en: "Traditional Korean Pork belly grilled on a rustic iron cauldron lid with ripe Kimchi and wild vegetables.",
+          ja: "伝統的な鉄釜の蓋で焼く熟成サムギョプサル。熟成キムチやワラビと一緒に楽しめます。",
+          zh: "传统的铁锅盖烤五花肉，配上陈年泡菜、蕨菜等一同烤制，是田浦著名的聚餐首选。",
+          vi: "Thịt ba chỉ nướng trên nắp vung gang truyền thống cùng kim chi chín và rau dại.",
+          es: "Panceta de cerdo coreana tradicional asada en una tapa de caldero de hierro con Kimchi maduro.",
+          ko: "투박한 무쇠솥 뚜껑에 구운 전통 삼겹살에, 잘 익은 김치와 제철 나물을 곁들여 즐기는 메뉴입니다."
+        },
+        mainDish: { en: "Samgyeopsal Set", ja: "サムギョプサルセット", zh: "五花肉套餐", vi: "Set Ba Chỉ Nướng", es: "Set de Samgyeopsal", ko: "삼겹살 세트" },
+        allergens: { en: "Pork, Soy, Sesame", ja: "豚肉、大豆、ごま", zh: "猪肉、大豆、芝麻", vi: "Thịt lợn, Đậu nành, Vừng", es: "Cerdo, Soya, Sésamo", ko: "돼지고기, 대두, 참깨" },
+        // Exact real coordinates for Jeonpo Cafe Street area in Busan
+        lat: 35.155823,
+        lng: 129.063712,
+        matchedFoodObj: {
+          foodId: "samgyeopsal",
+          name: "Samgyeopsal (삼겹살구이)",
+          ingredients: "Pork, garlic, sesame oil, soybean paste (쌈장 - contains soybean, wheat)",
+          allergens: ["pork", "soybean", "wheat"],
+          crossContactAllergens: ["shellfish", "fish"], // Kimchi side dish may carry trace salted shrimp/fish sauce
+          dietaryFlags: ["PORK", "NON-VEGAN"],
+          spicy: 1,
+          elements: [
+            { name: "삼겹살 (Pork)", prob: "98%" },
+            { name: "김치 (Kimchi)", prob: "94%" },
+            { name: "쌈장 (Ssamjang)", prob: "88%" }
+          ],
+          eatingMethod: [
+            "Grill the pork belly slices until golden brown on both sides.",
+            "Place a fresh lettuce or perilla leaf flat in your palm.",
+            "Set a slice of grilled pork belly in the center of the leaf.",
+            "Add a dab of ssamjang and a slice of garlic on top.",
+            "Wrap the leaf around the ingredients and eat it in one single bite!"
+          ],
+          culturalNote: "Koreans love to enjoy this dish with friends and family alongside a glass of Soju.",
+          image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=600"
+        }
+      },
+      {
+        id: 1,
+        name: "Mapbusim Maratang Jeonpo",
+        nameKo: "맵부심 마라탕 전포점",
+        category: "restaurant",
+        categoryDisplay: { en: "CHINESE HOTPOT", ja: "四川麻辣湯専門店", zh: "川味麻辣烫", vi: "Lẩu Tứ Xuyên Maratang", es: "HOTPOT CHINO", ko: "사천식 마라탕" },
+        rating: "4.7",
+        desc: {
+          en: "Spicy Sichuan style Malatang hotpot. Highly customisable ingredients selection.",
+          ja: "刺激的なスパイスが効いた四川風マーラータン。トッピングを自由に選べます。",
+          zh: "刺激辛辣的川式麻辣烫，配料自选度极高，深受年轻一代旅客喜爱。",
+          vi: "Món lẩu Malatang cay nồng kiểu Tứ Xuyên. Có thể tự chọn nguyên liệu phong phú.",
+          es: "Hotpot Malatang picante al estilo de Sichuan. Selección de ingredientes muy personalizable.",
+          ko: "얼얼하고 매운 사천식 마라탕. 재료를 원하는 대로 골라 담을 수 있어요."
+        },
+        mainDish: { en: "Custom Malatang", ja: "カスタム麻辣湯", zh: "自选麻辣烫", vi: "Lẩu Malatang Tự Chọn", es: "Malatang Personalizado", ko: "커스텀 마라탕" },
+        allergens: { en: "Peanuts, Beef, Gluten, Chili", ja: "ピーナッツ、牛肉、小麦、唐辛子", zh: "花生、牛肉、麸质、辣椒", vi: "Đậu phộng, Thịt bò, Gluten, Ớt", es: "Maní, Res, Gluten, Chile", ko: "땅콩, 소고기, 밀, 고추" },
+        lat: 35.156541,
+        lng: 129.064505,
+        matchedFoodObj: {
+          foodId: "malatang",
+          name: "Malatang (마라탕)",
+          ingredients: "Beef, peanut sauce (마장), chili oil, wheat noodles, tofu",
+          allergens: ["peanut", "beef", "wheat", "soybean"],
+          crossContactAllergens: ["sesame"],
+          dietaryFlags: ["NON-VEGAN", "SPICY"],
+          spicy: 3,
+          elements: [
+            { name: "마라탕 (Malatang)", prob: "96%" },
+            { name: "소고기 (Beef)", prob: "91%" },
+            { name: "땅콩소스 (Peanut)", prob: "95%" }
+          ],
+          eatingMethod: [
+            "Choose your own noodles, meat, and vegetable toppings at the counter.",
+            "The broth is simmered with numbing Sichuan peppercorns and chili oil.",
+            "Mix well before eating so the peanut sauce coats every ingredient.",
+            "Pair with a cold barley tea to balance the heat and numbing spice."
+          ],
+          culturalNote: "Malatang became hugely popular with young Koreans for its build-your-own customization.",
+          image: "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&q=80&w=600"
+        }
+      },
+      {
+        id: 2,
+        name: "Vintage Oven Baker",
+        nameKo: "빈티지 오븐 베이커",
+        category: "cafe",
+        categoryDisplay: { en: "BAKERY & CAFE", ja: "欧風アンティークベーカリー", zh: "欧式复古面包烘焙", vi: "Tiệm Bánh Cổ Điển", es: "PANADERÍA Y CAFÉ", ko: "베이커리 & 카페" },
+        rating: "4.9",
+        desc: {
+          en: "Cozy cafe with freshly baked salt butter rolls and drip coffee.",
+          ja: "焼きたての塩パンや香り高いハンドドリップコーヒーを楽しめる、静かで心地よいカフェ。",
+          zh: "每天清晨新鲜出炉盐面包与精品手冲咖啡的复古温馨烘焙坊。",
+          vi: "Quán cafe ấm cúng với bánh mì muối bơ mới ra lò và cafe phin thượng hạng.",
+          es: "Cafetería acogedora con pan de mantequilla con sal recién horneado y café de goteo.",
+          ko: "갓 구운 소금빵과 향긋한 드립 커피를 즐길 수 있는 아늑한 카페입니다."
+        },
+        mainDish: { en: "Salt Butter Bread", ja: "焼きたて塩パン", zh: "招牌盐面包", vi: "Bánh Mì Muối Bơ", es: "Pan de Mantequilla con Sal", ko: "소금빵" },
+        allergens: { en: "Milk, Butter, Wheat", ja: "乳、バター、小麦", zh: "牛奶、黄油、小麦", vi: "Sữa, Bơ, Lúa mì", es: "Leche, Mantequilla, Trigo", ko: "우유, 버터, 밀" },
+        lat: 35.154955,
+        lng: 129.062810,
+        matchedFoodObj: {
+          foodId: "saltbread",
+          name: "Salt Butter Bread (소금빵)",
+          ingredients: "Wheat flour, butter (dairy), yeast, sea salt",
+          allergens: ["milk", "wheat"],
+          crossContactAllergens: ["egg"],
+          dietaryFlags: ["VEGETARIAN"],
+          spicy: 0,
+          elements: [
+            { name: "소금빵 (Salt Bread)", prob: "99%" },
+            { name: "버터 (Butter)", prob: "96%" },
+            { name: "밀가루 (Wheat)", prob: "97%" }
+          ],
+          eatingMethod: [
+            "Best eaten fresh and warm, straight from the oven.",
+            "Tear it by hand rather than slicing, to keep the buttery layers intact.",
+            "Pairs perfectly with a hand-drip coffee or milk."
+          ],
+          culturalNote: "Sogeumppang (salt bread) became a nationwide bakery trend across Korea in recent years.",
+          image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=600"
+        }
+      },
+      {
+        id: 3,
+        name: "Busan Marine Jeon",
+        nameKo: "바다를 품은 해물파전",
+        category: "restaurant",
+        categoryDisplay: { en: "KOREAN SEAFOOD BISTRO", ja: "釜山海鮮チヂミ・マッコリ", zh: "釜山海鲜煎饼店", vi: "Quán Bánh Xèo Hải Sản Busan", es: "BISTRO DE MARISCOS", ko: "해산물 전문점" },
+        rating: "4.6",
+        desc: {
+          en: "Crispy Korean pancake packed with squid, green onions, and fresh shrimp.",
+          ja: "イカやネギ、新鮮なエビがどっさり入った、外はサクサク의海鮮チヂミが有名。",
+          zh: "外皮焦脆，裹满鱿鱼、小葱及鲜虾的釜山代表性海鲜葱煎饼。",
+          vi: "Bánh xèo hành kiểu Hàn Quốc giòn rụm với mực, hành lá và tôm tươi.",
+          es: "Panceta coreana crujiente llena de calamar, cebolletas y camarones frescos.",
+          ko: "오징어, 파, 신선한 새우가 듬뿍 들어간 바삭한 해물파전입니다."
+        },
+        mainDish: { en: "Seafood Scallion Pancake", ja: "海鮮ネギチヂミ", zh: "海鲜葱煎饼", vi: "Bánh Xèo Hải Sản", es: "Panqueque de Cebolleta y Mariscos", ko: "해물파전" },
+        allergens: { en: "Shrimp, Squid, Wheat, Egg", ja: "エビ、イカ、小麦、卵", zh: "虾、鱿鱼、小麦、鸡蛋", vi: "Tôm, Mực, Lúa mì, Trứng", es: "Camarón, Calamar, Trigo, Huevo", ko: "새우, 오징어, 밀, 계란" },
+        lat: 35.155410,
+        lng: 129.064210,
+        matchedFoodObj: {
+          foodId: "haemulpajeon",
+          name: "Haemul Pajeon (해물파전)",
+          ingredients: "Squid, shrimp, wheat flour, egg batter, green scallions",
+          allergens: ["squid", "shrimp", "wheat", "egg"],
+          crossContactAllergens: ["soybean"],
+          dietaryFlags: ["NON-VEGAN"],
+          spicy: 1,
+          elements: [
+            { name: "해물파전 (Pancake)", prob: "95%" },
+            { name: "오징어 (Squid)", prob: "91%" },
+            { name: "새우 (Shrimp)", prob: "89%" }
+          ],
+          eatingMethod: [
+            "Cut the crispy pancake into bite-sized wedges with the side of your spoon.",
+            "Dip each piece into the soy-vinegar sauce (initanjang) before eating.",
+            "Traditionally enjoyed with a bowl of makgeolli (rice wine), especially on rainy days."
+          ],
+          culturalNote: "Koreans have a saying that rainy days call for pajeon and makgeolli together.",
+          image: "https://images.unsplash.com/photo-1598214813590-c64a7f070e3b?auto=format&fit=crop&q=80&w=600"
+        }
+      },
+      {
+        id: 4,
+        name: "Jeonpo Home-Style Gyeranjjim",
+        nameKo: "전포 계란찜 백반",
+        category: "restaurant",
+        categoryDisplay: { en: "KOREAN COMFORT FOOD", ja: "韓国家庭料理", zh: "韩式家常菜", vi: "Món Ăn Hàn Quốc Thanh Đạm", es: "COMIDA CASERA COREANA", ko: "한식 가정식" },
+        rating: "4.7",
+        desc: {
+          en: "Fluffy steamed egg custard and mixed rice bowls with almost no spice — gentle on sensitive stomachs.",
+          ja: "ふわふわの卵蒸しとビビンバなど、辛さを抑えた優しい味の韓国家庭料理。",
+          zh: "松软鸡蛋羹与拌饭等清淡家常菜，几乎不辣，肠胃敏感的旅客也能放心享用。",
+          vi: "Trứng hấp mềm mịn và cơm trộn ít cay, dễ ăn cho cả những ai bụng yếu.",
+          es: "Suave flan de huevo al vapor y bibimbap con poco picante, ideal para estómagos sensibles.",
+          ko: "부드러운 계란찜과 슴슴한 비빔밥 등 자극적이지 않은 편안한 한식 가정식입니다."
+        },
+        mainDish: { en: "Gyeranjjim & Bibimbap Set", ja: "卵蒸しビビンバセット", zh: "鸡蛋羹拌饭套餐", vi: "Set Trứng Hấp & Cơm Trộn", es: "Set de Gyeranjjim y Bibimbap", ko: "계란찜 비빔밥 세트" },
+        allergens: { en: "Egg, Soy, Sesame", ja: "卵、大豆、ごま", zh: "鸡蛋、大豆、芝麻", vi: "Trứng, Đậu nành, Vừng", es: "Huevo, Soya, Sésamo", ko: "계란, 대두, 참깨" },
+        lat: 35.156200,
+        lng: 129.062500,
+        matchedFoodObj: {
+          foodId: "gyeranjjim",
+          name: "Gyeranjjim (계란찜)",
+          ingredients: "Egg, water, salt, sesame oil, chopped scallion",
+          allergens: ["egg", "sesame"],
+          crossContactAllergens: ["soybean"],
+          dietaryFlags: ["VEGETARIAN"],
+          spicy: 0,
+          elements: [
+            { name: "계란찜 (Egg Custard)", prob: "97%" },
+            { name: "비빔밥 (Bibimbap)", prob: "93%" },
+            { name: "된장국 (Soybean Soup)", prob: "85%" }
+          ],
+          eatingMethod: [
+            "Scoop the fluffy steamed egg straight from its hot stone pot — it keeps cooking at the table.",
+            "Mix the bibimbap thoroughly with the small amount of sauce provided before eating.",
+            "Share the egg custard as a side dish alongside the rest of the meal."
+          ],
+          culturalNote: "Gyeranjjim is often served as a mild side dish so that even young children and sensitive eaters can enjoy Korean food.",
+          image: "https://images.unsplash.com/photo-1583224964978-2e5b0e0c0e6e?auto=format&fit=crop&q=80&w=600"
+        }
+      },
+      {
+        id: 5,
+        name: "Jeonpo Halal Chicken House",
+        nameKo: "전포 할랄 치킨하우스",
+        category: "restaurant",
+        categoryDisplay: { en: "HALAL-FRIENDLY FRIED CHICKEN", ja: "ハラール対応フライドチキン", zh: "清真炸鸡专门店", vi: "Gà Rán Chuẩn Halal", es: "POLLO FRITO APTO HALAL", ko: "할랄 프라이드 치킨" },
+        rating: "4.6",
+        desc: {
+          en: "Certified halal fried chicken with a choice of soy-garlic or spicy glaze, popular with Muslim travelers.",
+          ja: "ハラール認証済みのフライドチキン。しょうゆニンニク味と辛味ソースから選べます。",
+          zh: "获得清真认证的炸鸡，可选酱油蒜香或辣味酱汁，深受穆斯林旅客喜爱。",
+          vi: "Gà rán đạt chứng nhận Halal, có thể chọn sốt tỏi tương hoặc sốt cay, được du khách Hồi giáo yêu thích.",
+          es: "Pollo frito certificado halal con salsa de soja y ajo o salsa picante, muy popular entre viajeros musulmanes.",
+          ko: "할랄 인증을 받은 프라이드 치킨으로, 간장마늘 또는 매운 양념 중 선택할 수 있어 무슬림 여행자들에게 인기가 많습니다."
+        },
+        mainDish: { en: "Halal Fried Chicken Set", ja: "ハラールフライドチキンセット", zh: "清真炸鸡套餐", vi: "Set Gà Rán Halal", es: "Set de Pollo Frito Halal", ko: "할랄 치킨 세트" },
+        allergens: { en: "Wheat, Soy, Milk", ja: "小麦、大豆、乳", zh: "小麦、大豆、牛奶", vi: "Lúa mì, Đậu nành, Sữa", es: "Trigo, Soya, Leche", ko: "밀, 대두, 우유" },
+        lat: 35.154600,
+        lng: 129.064800,
+        matchedFoodObj: {
+          foodId: "halalchicken",
+          name: "Halal Fried Chicken (할랄 치킨)",
+          ingredients: "Chicken, wheat batter, soy-garlic or spicy chili glaze, buttermilk brine",
+          allergens: ["wheat", "soybean"],
+          crossContactAllergens: ["milk"],
+          dietaryFlags: ["HALAL", "NON-VEGAN"],
+          spicy: 2,
+          elements: [
+            { name: "할랄치킨 (Halal Chicken)", prob: "97%" },
+            { name: "간장마늘소스 (Soy Garlic)", prob: "90%" },
+            { name: "매운양념 (Spicy Glaze)", prob: "88%" }
+          ],
+          eatingMethod: [
+            "Choose between soy-garlic (mild) or spicy glaze when ordering.",
+            "Eat with pickled radish (chikin-mu) to cut through the richness.",
+            "Best enjoyed freshly fried and hot, shared among friends."
+          ],
+          culturalNote: "Halal-certified fried chicken has become more common across Korea as more Muslim travelers visit each year.",
+          image: "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?auto=format&fit=crop&q=80&w=600"
+        }
+      },
+      {
+        id: 6,
+        name: "Jeonpo Brew Roastery",
+        nameKo: "전포 브루 로스터리",
+        category: "cafe",
+        categoryDisplay: { en: "SPECIALTY COFFEE ROASTERY", ja: "スペシャルティコーヒー焙煎所", zh: "精品咖啡烘焙工坊", vi: "Xưởng Rang Cà Phê Đặc Sản", es: "TOSTADURÍA DE CAFÉ DE ESPECIALIDAD", ko: "스페셜티 커피 로스터리" },
+        rating: "4.8",
+        desc: {
+          en: "Minimalist roastery serving single-origin hand-drip coffee and buttery scones.",
+          ja: "シングルオリジンのハンドドリップコーヒーとバタースコーンが楽しめるミニマルな焙煎所。",
+          zh: "极简风格烘焙工坊，供应单一产地手冲咖啡与黄油司康饼。",
+          vi: "Xưởng rang cà phê tối giản với cà phê phin nguồn gốc đơn và bánh scone bơ.",
+          es: "Tostaduría minimalista que sirve café de origen único con método de goteo y scones de mantequilla.",
+          ko: "싱글 오리진 원두로 내린 핸드드립 커피와 버터 스콘을 즐길 수 있는 미니멀한 로스터리입니다."
+        },
+        mainDish: { en: "Hand-Drip Coffee & Scone", ja: "ハンドドリップコーヒー&スコーン", zh: "手冲咖啡与司康饼", vi: "Cà Phê Phin & Bánh Scone", es: "Café de Goteo y Scone", ko: "핸드드립 커피 & 스콘" },
+        allergens: { en: "Milk, Wheat, Egg", ja: "乳、小麦、卵", zh: "牛奶、小麦、鸡蛋", vi: "Sữa, Lúa mì, Trứng", es: "Leche, Trigo, Huevo", ko: "우유, 밀, 계란" },
+        lat: 35.155000,
+        lng: 129.063200,
+        matchedFoodObj: {
+          foodId: "brewcoffee",
+          name: "Hand-Drip Coffee & Scone (핸드드립 커피 & 스콘)",
+          ingredients: "Single-origin coffee beans, butter scone (wheat, milk, egg)",
+          allergens: ["milk", "wheat", "egg"],
+          crossContactAllergens: [],
+          dietaryFlags: ["VEGETARIAN"],
+          spicy: 0,
+          elements: [
+            { name: "핸드드립 (Hand-Drip)", prob: "98%" },
+            { name: "버터스콘 (Butter Scone)", prob: "92%" }
+          ],
+          eatingMethod: [
+            "Let the hand-drip coffee cool slightly to bring out its fruity notes.",
+            "Split the scone and add the accompanying jam or butter before eating.",
+            "Pairs well with a quiet seat by the window for people-watching on Jeonpo Cafe Street."
+          ],
+          culturalNote: "Jeonpo-dong is known as one of Busan's trendiest cafe streets, packed with small independent roasteries like this one.",
+          image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=600"
+        }
+      },
+      {
+        id: 7,
+        name: "Sweet Bingsu House",
+        nameKo: "달콤 빙수하우스",
+        category: "cafe",
+        categoryDisplay: { en: "KOREAN SHAVED ICE DESSERT", ja: "韓国かき氷（ビンス）専門店", zh: "韩式刨冰甜品店", vi: "Quán Đá Bào Kiểu Hàn (Bingsu)", es: "POSTRE COREANO DE HIELO RASPADO", ko: "빙수 디저트 카페" },
+        rating: "4.7",
+        desc: {
+          en: "Fluffy milk shaved ice topped with sweet red beans, rice cake, and roasted soybean powder.",
+          ja: "ふわふわのミルクかき氷に、あんこや餅、きな粉をトッピングした一品。",
+          zh: "松软绵密的牛奶刨冰，配上红豆、年糕与黄豆粉，清爽解暑。",
+          vi: "Đá bào sữa mịn phủ đậu đỏ ngọt, bánh gạo và bột đậu nành rang.",
+          es: "Hielo raspado de leche esponjoso cubierto con frijoles rojos dulces, pastel de arroz y polvo de soya tostada.",
+          ko: "부드러운 우유 빙수 위에 팥, 떡, 고소한 인절미 콩가루를 올린 디저트입니다."
+        },
+        mainDish: { en: "Injeolmi Bingsu", ja: "きな粉ビンス", zh: "黄豆粉刨冰", vi: "Bingsu Đậu Nành Injeolmi", es: "Bingsu Injeolmi", ko: "인절미 빙수" },
+        allergens: { en: "Milk, Soy", ja: "乳、大豆", zh: "牛奶、大豆", vi: "Sữa, Đậu nành", es: "Leche, Soya", ko: "우유, 대두" },
+        lat: 35.156700,
+        lng: 129.063000,
+        matchedFoodObj: {
+          foodId: "bingsu",
+          name: "Injeolmi Bingsu (인절미 빙수)",
+          ingredients: "Shaved milk ice, sweet red beans, rice cake (injeolmi), roasted soybean powder",
+          allergens: ["milk", "soybean"],
+          crossContactAllergens: ["walnut"],
+          dietaryFlags: ["VEGETARIAN"],
+          spicy: 0,
+          elements: [
+            { name: "빙수 (Shaved Ice)", prob: "98%" },
+            { name: "인절미 (Rice Cake)", prob: "94%" },
+            { name: "팥 (Red Bean)", prob: "90%" }
+          ],
+          eatingMethod: [
+            "Mix everything together gently from the top before the ice melts.",
+            "Share one large bowl with friends — bingsu is traditionally a social dessert.",
+            "Eat quickly on hot summer days since the shaved ice melts fast!"
+          ],
+          culturalNote: "Bingsu is a beloved summer treat in Korea, with cafes competing every year to create new creative toppings.",
+          image: "https://images.unsplash.com/photo-1488900128323-21503983a07e?auto=format&fit=crop&q=80&w=600"
+        }
+      }
+    ];
+
+    // Traveler / foreigner reviews, keyed by matchedFoodObj.foodId
+    // No reviews have actually been written on this site yet, so this starts
+    // empty for every location. Real visitors can add their own via the
+    // review form in the modal — nothing here is pre-seeded/fake.
+    const REVIEWS_DATABASE = {};
+
+    // ==========================================
+    // PROFILE PERSISTENCE (survives page refresh)
+    // ==========================================
+    const PROFILE_STORAGE_KEY = 'fitbridge_profile_v1';
+
+    function saveProfileToStorage() {
+      try {
+        const profileData = {
+          lang: state.lang,
+          dietary: state.dietary,
+          selectedSpicy: state.selectedSpicy,
+          selectedAllergies: Array.from(state.selectedAllergies),
+          customAllergies: state.customAllergies,
+          onboardingComplete: true
+        };
+        localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
+      } catch (err) {
+        // localStorage may be unavailable (e.g. private browsing, or an
+        // in-app preview sandbox). Fail silently — the app still works,
+        // it just won't remember settings after a refresh in that case.
+        console.error('Could not save profile to local storage:', err);
+      }
+    }
+
+    function loadProfileFromStorage() {
+      try {
+        const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (err) {
+        console.error('Could not load profile from local storage:', err);
+        return null;
+      }
+    }
+
+    window.onload = function() {
+      // Each step is isolated so that a failure in one (e.g. map or exchange
+      // rate API being blocked/offline) never prevents the rest of the app
+      // from initializing correctly.
+      const safeRun = (fn, label) => {
+        try {
+          fn();
+        } catch (err) {
+          console.error(`Init step "${label}" failed:`, err);
+        }
+      };
+
+      // Try to restore a previously saved profile so returning users skip
+      // onboarding entirely and land straight in the main app.
+      const savedProfile = loadProfileFromStorage();
+      const hasSavedProfile = !!(savedProfile && savedProfile.onboardingComplete);
+
+      if (hasSavedProfile) {
+        state.dietary = savedProfile.dietary || 'none';
+        state.selectedSpicy = typeof savedProfile.selectedSpicy === 'number' ? savedProfile.selectedSpicy : 1;
+        state.selectedAllergies = new Set(savedProfile.selectedAllergies || []);
+        state.customAllergies = savedProfile.customAllergies || [];
+
+        document.getElementById('landing-page').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+      }
+
+      const initialLang = hasSavedProfile ? (savedProfile.lang || 'en') : 'en';
+      const initialSpicy = hasSavedProfile ? state.selectedSpicy : 1;
+
+      safeRun(fetchLiveExchangeRates, 'fetchLiveExchangeRates');
+      safeRun(renderAllergiesGrid, 'renderAllergiesGrid');
+      safeRun(() => setLanguage(initialLang), 'setLanguage');
+      safeRun(() => setSpicy(initialSpicy), 'setSpicy');
+      safeRun(() => {
+        // Reflect restored diet choice in both select dropdowns
+        const dietSelect = document.getElementById('diet-select');
+        const modalDietSelect = document.getElementById('modal-diet-select');
+        if (dietSelect) dietSelect.value = state.dietary;
+        if (modalDietSelect) modalDietSelect.value = state.dietary;
+      }, 'restoreDietSelects');
+      safeRun(initLeafletMap, 'initLeafletMap');
+
+      if (hasSavedProfile) {
+        safeRun(() => showToast(translations[state.lang].toastWelcomeBack || 'Welcome back!'), 'welcomeBackToast');
+      }
+    };
+
+    // Show Toast Custom Notification
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.innerText = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2500);
+    }
+
+    // Tab Switching
+    function switchTab(tabName) {
+      state.activeTab = tabName;
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+      // Update active navigation state
+      document.querySelectorAll('nav button').forEach(btn => {
+        btn.classList.remove('text-vintage-clay');
+        btn.classList.add('text-vintage-olive');
+      });
+      document.getElementById(`nav-${tabName}`).classList.add('text-vintage-clay');
+      document.getElementById(`nav-${tabName}`).classList.remove('text-vintage-olive');
+
+      // Recalculate Google Map sizing if map tab is selected
+      if (tabName === 'map' && mapInstance) {
+        setTimeout(() => {
+          mapInstance.invalidateSize();
+        }, 100);
+      }
+    }
+
+    // Toggle Landing / Onboarding Screen to Main View
+    function completeOnboarding() {
+      document.getElementById('landing-page').classList.add('hidden');
+      document.getElementById('main-app').classList.remove('hidden');
+      showToast("FitBridge Activated! Safe travel initialized.");
+      updateTtsDraft();
+      saveProfileToStorage();
+      if (mapInstance) {
+        setTimeout(() => { mapInstance.invalidateSize(); }, 200);
+      }
+    }
+
+    // Set Active UI Language and translate both hardcoded labels + input fields
+    function setLanguage(langCode) {
+      state.lang = langCode;
+
+      // Highlight language select in landing
+      document.querySelectorAll('.lang-selector').forEach(btn => {
+        btn.classList.remove('bg-vintage-terracotta', 'text-white', 'border-vintage-terracotta');
+        btn.classList.add('bg-white', 'text-vintage-dark', 'border-vintage-dark/10');
+      });
+      const selectedBtn = document.getElementById(`lang-btn-${langCode}`);
+      if (selectedBtn) {
+        selectedBtn.classList.remove('bg-white', 'text-vintage-dark');
+        selectedBtn.classList.add('bg-vintage-terracotta', 'text-white', 'border-vintage-terracotta');
+      }
+
+      // Highlight language in modal as well
+      document.querySelectorAll('.modal-lang-selector').forEach(btn => {
+        btn.classList.remove('bg-vintage-terracotta', 'text-white');
+        btn.classList.add('bg-white', 'text-vintage-dark');
+      });
+      const modalBtn = document.getElementById(`modal-lang-${langCode}`);
+      if (modalBtn) {
+        modalBtn.classList.remove('bg-white', 'text-vintage-dark');
+        modalBtn.classList.add('bg-vintage-terracotta', 'text-white');
+      }
+
+      // Perform translation
+      translateUI();
+      renderAllergiesGrid(); 
+      renderCustomAllergyBadges();
+      updateMapMarkers();
+      if (state.selectedLocation) {
+        selectLocation(state.selectedLocation.id);
+      }
+      updateTtsDraft();
+
+      // If a real AI photo scan result is currently on screen, automatically
+      // re-translate it in the new language rather than leaving it stuck in
+      // whatever language it was originally scanned in.
+      const resultPaneVisible = !document.getElementById('scan-result-pane').classList.contains('hidden');
+      const multiDishVisible = !document.getElementById('multi-dish-list').classList.contains('hidden');
+      if (resultPaneVisible && multiDishVisible && state.isRealPhotoUpload && state.uploadedImageDataUrl) {
+        analyzeMenuPhotoWithAI(state.uploadedImageDataUrl);
+      }
+    }
+
+    function translateUI() {
+      const trans = translations[state.lang];
+
+      // Landing
+      document.getElementById('landing-tagline').innerText = trans.tagline;
+      document.getElementById('landing-footer').innerText = trans.footerTagline;
+      document.getElementById('lbl-quick-profile').innerText = trans.quickProfile;
+      document.getElementById('lbl-diet').innerText = trans.diet;
+      document.getElementById('lbl-spicy').innerText = trans.spicy;
+      document.getElementById('btn-enter-text').innerText = trans.beginBtn;
+
+      // Localize Select options dynamically
+      const dietSelect = document.getElementById('diet-select');
+      const modalDietSelect = document.getElementById('modal-diet-select');
+      
+      const currentDietValue = dietSelect.value || 'none';
+
+      const dietOptionsHTML = `
+        <option value="none">${trans.dietNone}</option>
+        <option value="vegan">${trans.dietVegan}</option>
+        <option value="halal">${trans.dietHalal}</option>
+        <option value="vegetarian">${trans.dietVegetarian}</option>
+      `;
+      dietSelect.innerHTML = dietOptionsHTML;
+      modalDietSelect.innerHTML = dietOptionsHTML;
+      
+      dietSelect.value = currentDietValue;
+      modalDietSelect.value = currentDietValue;
+
+      // Localize Spicy Buttons
+      document.getElementById('spicy-btn-0').innerText = trans.spicyMild;
+      document.getElementById('spicy-btn-1').innerText = trans.spicyNormal;
+      document.getElementById('spicy-btn-2').innerText = trans.spicyHot;
+      document.getElementById('spicy-btn-3').innerText = trans.spicyExtreme;
+
+      document.getElementById('modal-spicy-0').innerText = trans.spicyMild;
+      document.getElementById('modal-spicy-1').innerText = trans.spicyNormal;
+      document.getElementById('modal-spicy-2').innerText = trans.spicyHot;
+      document.getElementById('modal-spicy-3').innerText = trans.spicyExtreme;
+
+      // Nav Tab Labels
+      document.getElementById('nav-lbl-map').innerText = trans.navMapLabel || "Map";
+      document.getElementById('nav-lbl-scan').innerText = trans.navScanLabel || "Menu";
+      document.getElementById('nav-lbl-tts').innerText = trans.navTtsLabel || "Allergy";
+      document.getElementById('nav-lbl-exch').innerText = trans.exchTitle.split(' ')[1] || "Exchange";
+
+      // Map View
+      document.getElementById('map-title').innerText = trans.mapTitle;
+      document.getElementById('map-subtitle').innerText = trans.mapSub;
+      document.getElementById('filter-all').innerText = trans.allLocs;
+      document.getElementById('filter-restaurant').innerText = trans.restLocs;
+      document.getElementById('filter-cafe').innerText = trans.cafeLocs;
+      document.getElementById('loc-lbl-dish').innerText = trans.mainDish;
+      document.getElementById('loc-lbl-allergy').innerText = trans.triggers;
+      document.getElementById('btn-trigger-scan-text').innerText = trans.translateBtn;
+      document.getElementById('qtype-btn-allergy').innerText = trans.qtypeAllergy;
+      document.getElementById('qtype-btn-taste').innerText = trans.qtypeTaste;
+      document.getElementById('qtype-btn-popularity').innerText = trans.qtypePopularity;
+      document.getElementById('btn-ask-popular').innerText = trans.askPopularBtn;
+      document.getElementById('lbl-how-to-eat-text').innerText = trans.howToEatLabel;
+      document.getElementById('btn-loc-view-reviews').innerText = trans.viewReviewsBtn;
+
+      // Scanner View
+      document.getElementById('scan-title').innerText = trans.scanTitle;
+      document.getElementById('scan-subtitle').innerText = trans.scanSub;
+      document.getElementById('cam-blank-title').innerText = trans.camTitle;
+      document.getElementById('lbl-detected-dishes').innerText = trans.detectedDishes;
+      document.getElementById('ocr-results-header').innerText = trans.ocrHeader;
+      document.getElementById('btn-sound-alarm').innerText = trans.soundAlarm;
+      document.getElementById('spec-name').innerText = trans.specName;
+      document.getElementById('spec-ingredients').innerText = trans.specIngs;
+      document.getElementById('spec-allergy-list').innerText = trans.specAlls;
+      document.getElementById('spec-spicy-lvl').innerText = trans.specSpicy;
+
+      // TTS View
+      document.getElementById('tts-title').innerText = trans.ttsTitle;
+      document.getElementById('tts-subtitle').innerText = trans.ttsSub;
+      document.getElementById('tts-info-banner').innerText = trans.ttsInfo;
+      document.getElementById('lbl-select-allergens').innerText = trans.checkAllergens;
+      document.getElementById('btn-clear-selection').innerText = trans.clearAll;
+      document.getElementById('lbl-custom-allergy').innerText = trans.customAllergy;
+      document.getElementById('btn-add').innerText = trans.addBtn;
+      document.getElementById('lbl-live-script').innerText = trans.scriptTitle;
+      document.getElementById('btn-play-tts').innerText = trans.playTts;
+
+      // Translate placeholders
+      document.getElementById('custom-allergy-input').placeholder = trans.customPlaceholder;
+
+      // Exchange View
+      document.getElementById('exch-title').innerText = trans.exchTitle;
+      document.getElementById('exch-source-label').innerText = trans.naverTitle;
+      document.getElementById('lbl-source-notice').innerText = trans.exchSource;
+      document.getElementById('lbl-target-currency').innerText = trans.targetCur;
+      document.getElementById('lbl-foreign-amt').innerText = trans.foreignAmt;
+      document.getElementById('lbl-krw-amt').innerText = trans.krwAmt;
+      document.getElementById('lbl-index-rates').innerText = trans.baseIndexes;
+      updateRateAsOfDisplay();
+      document.getElementById('lbl-source-notice').nextElementSibling.innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ${trans.naverTitle}
+      `;
+
+      // Modal
+      document.getElementById('modal-profile-title').innerText = trans.updateProfile;
+      document.getElementById('modal-lbl-diet').innerText = trans.diet;
+      document.getElementById('modal-lbl-spicy').innerText = trans.spicy;
+      document.getElementById('btn-save-profile').innerText = trans.applyProfile;
+
+      // Refresh spice-tolerance guidance text for the newly selected language
+      updateSpicyDescription();
+    }
+
+    // Set Spicy preference level
+    function setSpicy(level) {
+      state.selectedSpicy = level;
+
+      // Onboarding Selection Highlight
+      document.querySelectorAll('.spicy-selector').forEach((btn, idx) => {
+        if (idx === level) {
+          btn.classList.add('bg-vintage-clay', 'text-white', 'border-vintage-clay');
+          btn.classList.remove('bg-white', 'text-vintage-dark');
+        } else {
+          btn.classList.remove('bg-vintage-clay', 'text-white', 'border-vintage-clay');
+          btn.classList.add('bg-white', 'text-vintage-dark');
+        }
+      });
+
+      // Modal Selection Highlight
+      document.querySelectorAll('.modal-spicy-selector').forEach((btn, idx) => {
+        if (idx === level) {
+          btn.classList.add('bg-vintage-clay', 'text-white', 'border-vintage-clay');
+          btn.classList.remove('bg-white', 'text-vintage-dark');
+        } else {
+          btn.classList.remove('bg-vintage-clay', 'text-white', 'border-vintage-clay');
+          btn.classList.add('bg-white', 'text-vintage-dark');
+        }
+      });
+
+      // Update the "foreigners at this level typically eat..." guidance text
+      updateSpicyDescription();
+    }
+
+    // Refresh the spice-tolerance guidance text based on current language + selected level
+    function updateSpicyDescription() {
+      const trans = translations[state.lang];
+      const descText = trans[`spicyDesc${state.selectedSpicy}`] || '';
+      const onboardEl = document.getElementById('spicy-desc-text');
+      const modalEl = document.getElementById('modal-spicy-desc-text');
+      if (onboardEl) onboardEl.innerText = descText;
+      if (modalEl) modalEl.innerText = descText;
+    }
+
+    // Synchronize dietary preferences dropdowns
+    function syncModalDiet() {
+      const modalSelect = document.getElementById('modal-diet-select');
+      const onboardSelect = document.getElementById('diet-select');
+      state.dietary = modalSelect.value;
+      onboardSelect.value = modalSelect.value;
+      saveProfileToStorage();
+    }
+
+    // Onboarding diet dropdown previously had no handler at all — selecting a
+    // diet there did nothing. This keeps it in sync with the modal + state.
+    function syncOnboardingDiet() {
+      const onboardSelect = document.getElementById('diet-select');
+      const modalSelect = document.getElementById('modal-diet-select');
+      state.dietary = onboardSelect.value;
+      if (modalSelect) modalSelect.value = onboardSelect.value;
+      saveProfileToStorage();
+    }
+
+    // Render 19 Standard Food Allergies Checkboxes
+    function renderAllergiesGrid() {
+      const grid = document.getElementById('allergen-checkbox-grid');
+      grid.innerHTML = '';
+
+      standardAllergens.forEach(allg => {
+        const checked = state.selectedAllergies.has(allg.id) ? 'checked' : '';
+        const bgStyle = state.selectedAllergies.has(allg.id) ? 'bg-vintage-beige border-vintage-clay/50' : 'bg-white border-vintage-dark/10';
+        
+        const card = document.createElement('label');
+        card.className = `flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer hover:bg-vintage-beige/50 transition duration-150 ${bgStyle}`;
+        card.innerHTML = `
+          <input type="checkbox" ${checked} onchange="toggleAllergen('${allg.id}')" class="rounded text-vintage-clay focus:ring-vintage-clay accent-vintage-clay border-vintage-dark/20">
+          <span class="text-sm">${allg.icon}</span>
+          <span class="font-medium text-vintage-dark">${allg[state.lang] || allg.en}</span>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Checkbox toggling handler
+    function toggleAllergen(id) {
+      if (state.selectedAllergies.has(id)) {
+        state.selectedAllergies.delete(id);
+      } else {
+        state.selectedAllergies.add(id);
+      }
+      
+      // Update badge counts
+      const totalAllergies = state.selectedAllergies.size + state.customAllergies.length;
+      const badge = document.getElementById('allergy-badge');
+      if (totalAllergies > 0) {
+        badge.innerText = totalAllergies;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      renderAllergiesGrid();
+      updateTtsDraft();
+      saveProfileToStorage();
+    }
+
+    // Clear all checked items
+    function clearAllAllergies() {
+      state.selectedAllergies.clear();
+      state.customAllergies = [];
+      document.getElementById('custom-allergy-badges').innerHTML = '';
+      
+      const badge = document.getElementById('allergy-badge');
+      badge.classList.add('hidden');
+
+      renderAllergiesGrid();
+      updateTtsDraft();
+      saveProfileToStorage();
+      showToast(translations[state.lang].toastAllergyClear);
+    }
+
+    // Live free translation helper using Google Translate's single point endpoint
+    async function translateToKorean(text) {
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data && data[0] && data[0][0] && data[0][0][0]) {
+          return data[0][0][0]; // Translated text
+        }
+      } catch (e) {
+        console.error("Translation fail, falling back to original", e);
+      }
+      return text; // Fallback to raw text
+    }
+
+    // Add Direct custom allergy with translation
+    async function addCustomAllergy() {
+      const input = document.getElementById('custom-allergy-input');
+      const val = input.value.trim();
+      if (!val) return;
+
+      // Show loader feedback
+      const loader = document.getElementById('translation-loader');
+      loader.innerText = translations[state.lang].translatingFeedback;
+      loader.classList.remove('hidden');
+
+      // Translate custom text to Korean
+      const translatedVal = await translateToKorean(val);
+      
+      loader.classList.add('hidden');
+
+      // Push custom translated pair
+      const alreadyExists = state.customAllergies.some(x => x.original.toLowerCase() === val.toLowerCase());
+      if (!alreadyExists) {
+        state.customAllergies.push({
+          original: val,
+          translated: translatedVal
+        });
+        renderCustomAllergyBadges();
+        updateTtsDraft();
+        saveProfileToStorage();
+        showToast(translations[state.lang].toastCustomAdd + `${val} (${translatedVal})`);
+      }
+      input.value = '';
+
+      // Update allergy badge count
+      const totalAllergies = state.selectedAllergies.size + state.customAllergies.length;
+      const badge = document.getElementById('allergy-badge');
+      badge.innerText = totalAllergies;
+      badge.classList.remove('hidden');
+    }
+
+    // Render small custom input allergen badges with dual-language information
+    function renderCustomAllergyBadges() {
+      const container = document.getElementById('custom-allergy-badges');
+      container.innerHTML = '';
+
+      state.customAllergies.forEach(item => {
+        const span = document.createElement('span');
+        span.className = "inline-flex items-center gap-1.5 text-[11px] bg-vintage-clay/20 text-vintage-terracotta px-2.5 py-1 rounded-full font-bold vintage-border";
+        span.innerHTML = `
+          <span>${item.original} <span class="text-vintage-dark/60 font-normal">→ ${item.translated}</span></span>
+          <button onclick="removeCustomAllergy('${item.original}')" class="hover:text-vintage-dark focus:outline-none ml-1 font-extrabold text-xs">×</button>
+        `;
+        container.appendChild(span);
+      });
+    }
+
+    // Delete custom item
+    function removeCustomAllergy(originalText) {
+      state.customAllergies = state.customAllergies.filter(x => x.original !== originalText);
+      renderCustomAllergyBadges();
+      updateTtsDraft();
+      saveProfileToStorage();
+      
+      const totalAllergies = state.selectedAllergies.size + state.customAllergies.length;
+      const badge = document.getElementById('allergy-badge');
+      if (totalAllergies > 0) {
+        badge.innerText = totalAllergies;
+      } else {
+        badge.classList.add('hidden');
+      }
+      showToast(translations[state.lang].toastCustomRemove + originalText);
+    }
+
+    // Generate accurate Korean text script for the TTS communicator.
+    // When the person has a diet preference set (vegan/halal/vegetarian),
+    // that's spoken first automatically. If diet is "none", only the
+    // allergy information is announced, same as before.
+    function getSpeechScript(dishNameText) {
+      const targetDish = dishNameText || '이 요리';
+      const allergyListKo = [];
+      
+      // Standard elements
+      standardAllergens.forEach(allg => {
+        if (state.selectedAllergies.has(allg.id)) {
+          allergyListKo.push(allg.ko);
+        }
+      });
+
+      // Custom elements (which are already translated to Korean)
+      state.customAllergies.forEach(c => {
+        allergyListKo.push(c.translated);
+      });
+
+      const dietPhrases = {
+        vegan: '저는 비건이라 고기, 생선, 유제품, 계란, 꿀 등 모든 동물성 재료가 들어간 음식을 먹을 수 없습니다.',
+        halal: '저는 할랄 음식만 먹을 수 있습니다. 돼지고기나 술이 들어간 음식은 피해야 합니다.',
+        vegetarian: '저는 채식주의자라 고기와 생선이 들어간 음식을 먹지 않습니다.'
+      };
+      const dietPhrase = dietPhrases[state.dietary] || '';
+
+      let allergyPhrase;
+      if (allergyListKo.length === 0) {
+        allergyPhrase = `${targetDish}에 어떠한 알레르기 유발 성분이 포함되어 있는지 확인해 주실 수 있나요?`;
+      } else {
+        const formattedAllergies = allergyListKo.join(', ');
+        allergyPhrase = `저는 심한 [ ${formattedAllergies} ] 알레르기가 있습니다. ${targetDish}에 혹시 해당 성분이 들어가나요?`;
+      }
+
+      if (dietPhrase) {
+        return `안녕하세요, ${dietPhrase} 그리고 ${allergyPhrase}`;
+      }
+      return `안녕하세요, ${allergyPhrase}`;
+    }
+
+    // Ask how a specific dish tastes
+    function getTasteSpeechScript(dishNameText) {
+      const targetDish = dishNameText || '이 요리';
+      return `안녕하세요, ${targetDish}는 맛이 어떤가요?`;
+    }
+
+    // Ask whether a specific dish is popular
+    function getPopularitySpeechScript(dishNameText) {
+      const targetDish = dishNameText || '이 요리';
+      return `안녕하세요, ${targetDish}가 여기서 인기 있는 메뉴인가요?`;
+    }
+
+    // Build the right script based on the currently selected question type
+    function buildQuestionScript(dishNameText) {
+      if (state.ttsQuestionType === 'taste') return getTasteSpeechScript(dishNameText);
+      if (state.ttsQuestionType === 'popularity') return getPopularitySpeechScript(dishNameText);
+      return getSpeechScript(dishNameText);
+    }
+
+    // Switch which type of question "Ask Waiter in Korean" will ask
+    function setTtsQuestionType(type) {
+      state.ttsQuestionType = type;
+      document.querySelectorAll('.qtype-selector').forEach(btn => {
+        btn.classList.remove('bg-vintage-terracotta', 'text-white');
+        btn.classList.add('bg-white', 'text-vintage-dark');
+      });
+      const activeBtn = document.getElementById(`qtype-btn-${type}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-white', 'text-vintage-dark');
+        activeBtn.classList.add('bg-vintage-terracotta', 'text-white');
+      }
+    }
+
+    // Extract the Hangul name from a combined "Translated Name (한국어이름)" string
+    function extractKoreanName(str) {
+      const match = (str || '').match(/\(([^)]+)\)\s*$/);
+      return match ? match[1] : (str || '이 요리');
+    }
+
+    // Update draft box on the TTS panel
+    function updateTtsDraft() {
+      const script = getSpeechScript();
+      document.getElementById('tts-preview-box').innerText = `"${script}"`;
+    }
+
+    // Speak a given Korean phrase aloud using the browser's speech synthesis.
+    function speakKorean(textToSpeak) {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'ko-KR'; 
+        utterance.rate = 0.9;
+
+        const voices = window.speechSynthesis.getVoices();
+        const koVoice = voices.find(v => v.lang.startsWith('ko'));
+        if (koVoice) {
+          utterance.voice = koVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+        showToast(translations[state.lang].toastTtsSuccess);
+      } else {
+        showToast(translations[state.lang].toastTtsFail);
+      }
+    }
+
+    // Play actual Speech Synthesis voice on standard browser (always speaking in KOREAN)
+    function triggerTtsVoice() {
+      speakKorean(getSpeechScript());
+    }
+
+    // "Ask Waiter in Korean" button on the scan result screen. Stays right
+    // where the person is (no tab switch) and asks about whichever dish is
+    // currently selected (tap a dish card to change selection), using
+    // whichever question type (allergy/taste/popularity) is active.
+    function triggerQuickAllergySpeech() {
+      const names = state.lastScannedDishNamesKo || [];
+      const dishNameText = names.length > 0 ? names.join(', ') : '이 요리';
+      const script = buildQuestionScript(dishNameText);
+      speakKorean(script);
+    }
+
+    // Separate, always-available question about the restaurant's most
+    // popular dish overall — not tied to any specific scanned item.
+    function triggerPopularMenuQuestion() {
+      speakKorean('안녕하세요, 여기서 제일 잘나가는 메뉴가 무엇인가요?');
+    }
+
+    // Dynamically load the Google Maps script with a given language, then run a callback.
+    // Google Maps has no official hot-swap for language, so we drop the previous
+    // Initialize Leaflet map with OpenStreetMap tiles — free, no API key needed
+    function initLeafletMap() {
+      if (typeof L === 'undefined') {
+        console.error('Leaflet library failed to load.');
+        const mapContainer = document.getElementById('jeonpo-map');
+        if (mapContainer) {
+          mapContainer.innerHTML = `
+            <div class="w-full h-full flex flex-col items-center justify-center text-center p-4 bg-vintage-beige/40">
+              <span class="text-2xl mb-2">🗺️</span>
+              <p class="text-xs font-semibold text-vintage-dark">Map unavailable</p>
+              <p class="text-[10px] text-vintage-olive mt-1 max-w-xs">Could not load the map library. Check your internet connection and reload the page.</p>
+            </div>
+          `;
+        }
+        return;
+      }
+
+      const jeonpoCenter = [35.155823, 129.063712];
+
+      try {
+        mapInstance = L.map('jeonpo-map', {
+          zoomControl: true,
+          scrollWheelZoom: false
+        }).setView(jeonpoCenter, 16);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mapInstance);
+
+        updateMapMarkers();
+      } catch (err) {
+        console.error('Map initialization failed:', err);
+      }
+    }
+
+    // Update map markers when filter changes or a location is selected
+    function updateMapMarkers() {
+      if (!mapInstance) return;
+
+      // Clear existing markers
+      mapMarkers.forEach(m => mapInstance.removeLayer(m));
+      mapMarkers = [];
+
+      locations.forEach(loc => {
+        // Filter elements
+        if (state.currentMapFilter !== 'all' && loc.category !== state.currentMapFilter) {
+          return;
+        }
+
+        const iconSymbol = loc.category === 'restaurant' ? '🍚' : '☕';
+
+        const customMarkerIcon = L.divIcon({
+          html: `<div class="w-8 h-8 rounded-full border border-vintage-dark/20 bg-white shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95" style="transform: translate(-10px, -10px);"><span class="text-sm">${iconSymbol}</span></div>`,
+          className: 'custom-vintage-div-icon',
+          iconSize: [28, 28]
+        });
+
+        const marker = L.marker([loc.lat, loc.lng], { icon: customMarkerIcon }).addTo(mapInstance);
+
+        // Popups translated dynamically
+        const storeName = state.lang === 'ko' ? loc.nameKo : loc.name;
+        const mainDish = loc.mainDish[state.lang] || loc.mainDish['en'];
+        marker.bindPopup(`
+          <div class="p-1 font-sans">
+            <h4 class="font-serif font-bold text-vintage-dark">${storeName}</h4>
+            <p class="text-[10px] text-vintage-olive m-0 mt-0.5">${mainDish}</p>
+          </div>
+        `);
+
+        // Selecting a marker shows its detail card (with the "View Reviews" option)
+        marker.on('click', () => {
+          selectLocation(loc.id);
+          marker.openPopup();
+        });
+
+        mapMarkers.push(marker);
+      });
+    }
+
+    // Map Filters Logic
+    function setMapFilter(filter) {
+      state.currentMapFilter = filter;
+      
+      document.querySelectorAll('.map-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-vintage-dark', 'shadow-sm');
+        btn.classList.add('text-vintage-olive');
+      });
+
+      const selectedBtn = document.getElementById(`filter-${filter}`);
+      selectedBtn.classList.remove('text-vintage-olive');
+      selectedBtn.classList.add('bg-white', 'text-vintage-dark', 'shadow-sm');
+
+      updateMapMarkers();
+    }
+
+    // Choose location to display in card. Reviews only become viewable once
+    // a restaurant/cafe icon on the map is actually selected — this sets
+    // which dish's reviews the "View Reviews" button on the detail card
+    // below will open.
+    function selectLocation(id) {
+      const loc = locations.find(l => l.id === id);
+      state.selectedLocation = loc;
+      state.currentLocIdx = id;
+      state.currentReviewFoodId = loc.matchedFoodObj ? loc.matchedFoodObj.foodId : null;
+
+      // Update Map Active Markers
+      updateMapMarkers();
+
+      // Pan map smoothly to the selected location
+      if (mapInstance) {
+        mapInstance.panTo([loc.lat, loc.lng]);
+      }
+
+      // Render Selected Panel Detail — only reveal the card once the person
+      // has actually picked a location (no fake pre-selected default).
+      document.getElementById('location-detail-card').classList.remove('hidden');
+      document.getElementById('loc-cat').innerText = loc.categoryDisplay[state.lang] || loc.category.toUpperCase();
+      document.getElementById('loc-name').innerText = state.lang === 'ko' ? loc.nameKo : loc.name;
+      document.getElementById('loc-desc').innerText = loc.desc[state.lang] || loc.desc['en'];
+      document.getElementById('loc-dishes').innerText = loc.mainDish[state.lang] || loc.mainDish['en'];
+      document.getElementById('loc-allergens').innerText = loc.allergens[state.lang] || loc.allergens['en'];
+    }
+
+    // Open the traveler reviews modal for the currently selected map location
+    function viewReviewsForLocation() {
+      if (!state.selectedLocation) return;
+      openReviewsModal();
+    }
+
+    // Preload scanner with selected location target image
+    function startScanningPreload() {
+      if (!state.selectedLocation) return;
+      
+      const locObj = state.selectedLocation;
+      switchTab('scanner');
+      
+      // Load mockup vision AI preset food image
+      const previewImg = document.getElementById('scanned-image-preview');
+      previewImg.src = locObj.matchedFoodObj.image;
+      previewImg.classList.remove('hidden');
+      document.getElementById('camera-blank').classList.add('hidden');
+      document.getElementById('btn-trigger-scan').disabled = false;
+      document.getElementById('scan-loc-indicator').innerText = `Target: ${state.lang === 'ko' ? locObj.nameKo : locObj.name}`;
+
+      // This is a preset demo photo tied to a known location, not a real
+      // user photo — so scanning it uses our own local database, not the AI.
+      state.isRealPhotoUpload = false;
+      
+      showToast("Selected store menu imagery loaded. Press Center Scan trigger.");
+    }
+
+    // Handle standard camera / library file upload
+    // Shrink a photo down to a reasonable max dimension + JPEG quality before
+    // sending it anywhere. Phone camera photos are often 3-10MB, which is
+    // well past Vercel's request size limit and causes 413 "Payload Too
+    // Large" errors. Resized like this, most photos end up under ~300KB.
+    function resizeImageForUpload(dataUrl, maxDimension, quality) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDimension || height > maxDimension) {
+            if (width >= height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+    }
+
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          // Shrink before showing/storing, so both the preview and the
+          // upload to the AI endpoint use the same lightweight version.
+          const resizedDataUrl = await resizeImageForUpload(e.target.result, 1024, 0.75);
+
+          // Safety net: if the resize didn't bring the image down enough
+          // (e.g. an unusual in-app browser where Canvas behaves
+          // differently), refuse to send an oversized payload rather than
+          // risk a slow/hanging request.
+          const approxBytes = Math.round((resizedDataUrl.length * 3) / 4);
+          if (approxBytes > 3 * 1024 * 1024) {
+            console.error('Resized image still too large:', approxBytes, 'bytes');
+            showToast(translations[state.lang].toastImageTooLarge);
+            return;
+          }
+
+          const previewImg = document.getElementById('scanned-image-preview');
+          previewImg.src = resizedDataUrl;
+          previewImg.classList.remove('hidden');
+          document.getElementById('camera-blank').classList.add('hidden');
+          document.getElementById('btn-trigger-scan').disabled = false;
+
+          // A real user photo — scanning it will call the AI endpoint.
+          state.isRealPhotoUpload = true;
+          state.uploadedImageDataUrl = resizedDataUrl;
+          document.getElementById('scan-loc-indicator').innerText = '';
+        } catch (err) {
+          console.error('Image resize failed:', err);
+          showToast(translations[state.lang].toastAiError);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Trigger laser effect, then route to either the real AI analysis
+    // (for a photo the user actually took/uploaded) or the built-in demo
+    // database (for a preloaded "Scan Menu Here" store photo).
+    function triggerSimulatedScan() {
+      const laser = document.getElementById('scan-laser');
+      laser.classList.remove('hidden');
+      
+      // Animate laser bar
+      let pos = 0;
+      const interval = setInterval(() => {
+        pos += 5;
+        laser.style.top = `${pos}%`;
+        if (pos >= 95) {
+          clearInterval(interval);
+          laser.classList.add('hidden');
+          laser.style.top = '0%';
+
+          if (state.isRealPhotoUpload && state.uploadedImageDataUrl) {
+            analyzeMenuPhotoWithAI(state.uploadedImageDataUrl);
+          } else {
+            completeFoodScan();
+          }
+        }
+      }, 50);
+
+      showToast(translations[state.lang].toastScanning);
+    }
+
+    // Turn a dish name into a stable, url-safe key for the reviews database
+    function slugifyFoodName(name) {
+      return (name || 'dish')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '')
+        .slice(0, 40) || 'dish';
+    }
+
+    // Send the uploaded photo to our /api/analyze-menu serverless function
+    // (which calls OpenAI's vision model server-side, keeping the API key
+    // private) and render whatever it identifies using the same UI as the
+    // built-in demo database.
+    async function analyzeMenuPhotoWithAI(imageDataUrl) {
+      try {
+        const response = await fetch('/api/analyze-menu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: imageDataUrl,
+            targetLanguage: state.lang
+          })
+        });
+
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          console.error('AI analysis failed:', response.status, errBody);
+          showToast(translations[state.lang].toastAiError);
+          return;
+        }
+
+        const aiData = await response.json();
+        const rawDishes = Array.isArray(aiData.dishes) ? aiData.dishes : [];
+
+        if (rawDishes.length === 0) {
+          showToast(translations[state.lang].toastAiError);
+          return;
+        }
+
+        const dishes = rawDishes.map(d => ({
+          foodId: slugifyFoodName(d.name_en || d.name_ko),
+          name: d.name_ko && (d.translated_name || d.name_en)
+            ? `${d.translated_name || d.name_en} (${d.name_ko})`
+            : (d.translated_name || d.name_en || d.name_ko || 'Unknown dish'),
+          nameKo: d.name_ko || d.name_en || 'Unknown dish',
+          ingredients: d.ingredients || '',
+          allergens: Array.isArray(d.allergens) ? d.allergens : [],
+          crossContactAllergens: Array.isArray(d.crossContactAllergens) ? d.crossContactAllergens : [],
+          spicy: Number.isFinite(d.spicy) ? Math.max(0, Math.min(3, Math.round(d.spicy))) : 0,
+          eatingMethod: Array.isArray(d.eatingMethod) ? d.eatingMethod : [],
+          description: d.description || ''
+        }));
+
+        renderMultiDishScanResult(dishes);
+      } catch (err) {
+        console.error('analyzeMenuPhotoWithAI error:', err);
+        showToast(translations[state.lang].toastAiError);
+      }
+    }
+
+    // Check a single dish's allergens/cross-contact/spice against the
+    // user's profile. Returns 'red' | 'orange' | 'green' plus which
+    // allergen ids matched (for display).
+    function checkDishSafety(dish) {
+      let safetyState = 'green';
+      let isCrossContact = false;
+      const matchedDangers = [];
+
+      (dish.allergens || []).forEach(allg => {
+        const standardItem = standardAllergens.find(x => x.id === allg);
+        if (standardItem && (state.selectedAllergies.has(allg) || state.customAllergies.some(x => x.translated === standardItem.ko))) {
+          safetyState = 'red';
+          matchedDangers.push(allg);
+        }
+      });
+
+      if (safetyState !== 'red' && dish.crossContactAllergens) {
+        dish.crossContactAllergens.forEach(allg => {
+          const standardItem = standardAllergens.find(x => x.id === allg);
+          if (standardItem && (state.selectedAllergies.has(allg) || state.customAllergies.some(x => x.translated === standardItem.ko))) {
+            safetyState = 'orange';
+            isCrossContact = true;
+            matchedDangers.push(allg);
+          }
+        });
+      }
+
+      if (safetyState === 'green' && dish.spicy > state.selectedSpicy) {
+        safetyState = 'orange';
+      }
+
+      return { safetyState, isCrossContact, matchedDangers };
+    }
+
+    // Render a list of multiple dishes detected in one photo (real AI scan
+    // of a menu board). Shows one overall safety banner (worst case across
+    // all dishes) plus every dish's name, ingredients, spice level, and its
+    // own individual safety indicator.
+    function renderMultiDishScanResult(dishes) {
+      // Store dishes so selection clicks and language changes can re-render
+      // without needing to re-scan.
+      state.lastScannedDishes = dishes;
+      state.selectedDishIndex = 0;
+
+      // No overall safety banner for multi-dish results anymore — just hide it.
+      const banner = document.getElementById('profile-match-banner');
+      if (banner) banner.classList.add('hidden');
+
+      // Render vision target items (Korean names as a quick glance grid)
+      const targetGrid = document.getElementById('vision-elements-list');
+      targetGrid.innerHTML = '';
+      dishes.slice(0, 9).forEach(dish => {
+        const el = document.createElement('div');
+        el.className = "bg-vintage-beige/50 p-2 rounded-lg text-center border border-vintage-dark/5";
+        el.innerHTML = `<span class="block text-xs font-bold text-vintage-dark truncate">${dish.name}</span>`;
+        targetGrid.appendChild(el);
+      });
+
+      renderDishCards(dishes);
+      updateAskWaiterTarget();
+
+      // Show the multi-dish list, hide the single-dish detail view
+      document.getElementById('single-dish-details').classList.add('hidden');
+      document.getElementById('multi-dish-list').classList.remove('hidden');
+      document.getElementById('scan-result-pane').classList.remove('hidden');
+      showToast(translations[state.lang].toastScanDone);
+    }
+
+    // Renders the dish cards, highlighting whichever one is currently
+    // selected (green ring) so it's clear which dish "Ask Waiter" will ask
+    // the staff about. Tapping a card selects it.
+    function renderDishCards(dishes) {
+      const listContainer = document.getElementById('multi-dish-list');
+      listContainer.innerHTML = '';
+      const spicyTextMap = ['Mild', 'Normal', 'Hot 🔥', 'Extreme 🌶️'];
+      const howToEatLabel = translations[state.lang].howToEatLabel || 'How to Eat';
+
+      dishes.forEach((dish, idx) => {
+        const isSelected = idx === state.selectedDishIndex;
+        const card = document.createElement('div');
+        card.onclick = () => selectDish(idx);
+        card.className = `bg-vintage-beige/30 p-3 rounded-xl space-y-2 cursor-pointer transition border-2 ${isSelected ? 'border-emerald-400' : 'border-transparent'}`;
+        const stepsHtml = (dish.eatingMethod || []).map((step, stepIdx) => `
+          <div class="flex gap-1.5 items-start">
+            <span class="w-4 h-4 shrink-0 rounded-full bg-vintage-clay/20 text-vintage-terracotta text-[9px] font-bold flex items-center justify-center mt-0.5">${stepIdx + 1}</span>
+            <p class="text-[11px] text-vintage-dark leading-relaxed">${step}</p>
+          </div>
+        `).join('');
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-sm text-vintage-dark flex items-center gap-1.5">
+              ${isSelected ? '<span class="text-emerald-500">✓</span>' : ''}${dish.name}
+            </span>
+            <span class="text-[10px] font-mono text-vintage-clay shrink-0">${spicyTextMap[dish.spicy]}</span>
+          </div>
+          ${dish.description ? `<p class="text-[11px] text-vintage-olive leading-relaxed">${dish.description}</p>` : ''}
+          ${stepsHtml ? `<div class="space-y-1 pt-1 border-t border-vintage-dark/10">
+            <span class="text-[9px] font-bold text-vintage-olive uppercase">${howToEatLabel}</span>
+            ${stepsHtml}
+          </div>` : ''}
+        `;
+        listContainer.appendChild(card);
+      });
+    }
+
+    // Select which dish "Ask Waiter" should ask about
+    function selectDish(idx) {
+      state.selectedDishIndex = idx;
+      renderDishCards(state.lastScannedDishes);
+      updateAskWaiterTarget();
+    }
+
+    // Point the "Ask Waiter" TTS at whichever dish is currently selected
+    function updateAskWaiterTarget() {
+      const dishes = state.lastScannedDishes || [];
+      const selected = dishes[state.selectedDishIndex];
+      state.lastScannedDishNamesKo = selected ? [selected.nameKo] : [];
+    }
+
+    // Food Scanner completed math output
+    function completeFoodScan() {
+      const activeLoc = locations[state.currentLocIdx];
+      renderScanResultUI(activeLoc.matchedFoodObj);
+    }
+
+    // Shared UI renderer: takes a matchObj shape (foodId, name, ingredients,
+    // allergens, crossContactAllergens, dietaryFlags, spicy, elements,
+    // eatingMethod, culturalNote) from the built-in demo database (used by
+    // the "Scan Menu Here" flow tied to a known map location), and paints
+    // the single-dish result pane.
+    function renderScanResultUI(matchObj) {
+      // Render vision target items
+      const targetGrid = document.getElementById('vision-elements-list');
+      targetGrid.innerHTML = '';
+      
+      (matchObj.elements || []).forEach(item => {
+        const el = document.createElement('div');
+        el.className = "bg-vintage-beige/50 p-2 rounded-lg text-center border border-vintage-dark/5";
+        el.innerHTML = `
+          <span class="block text-xs font-bold text-vintage-dark truncate">${item.name}</span>
+          <span class="text-[10px] font-mono text-vintage-clay">${item.prob}</span>
+        `;
+        targetGrid.appendChild(el);
+      });
+
+      // Perform intelligent Safety Comparison mapping
+      let safetyState = 'green'; // green: safe, orange: check (cross-contact or spice), red: danger
+      let isCrossContact = false;
+      const matchedDangers = [];
+
+      (matchObj.allergens || []).forEach(allg => {
+        // Match standard translated keys
+        const standardItem = standardAllergens.find(x => x.id === allg);
+        if (standardItem && (state.selectedAllergies.has(allg) || state.customAllergies.some(x => x.translated === standardItem.ko))) {
+          safetyState = 'red';
+          matchedDangers.push(allg);
+        }
+      });
+
+      // Cross-contamination trace risk check (e.g. shared sauces / broth / seasoning)
+      if (safetyState !== 'red' && matchObj.crossContactAllergens) {
+        matchObj.crossContactAllergens.forEach(allg => {
+          const standardItem = standardAllergens.find(x => x.id === allg);
+          if (standardItem && (state.selectedAllergies.has(allg) || state.customAllergies.some(x => x.translated === standardItem.ko))) {
+            safetyState = 'orange';
+            isCrossContact = true;
+            matchedDangers.push(allg);
+          }
+        });
+      }
+
+      // Spice matching checks
+      if (safetyState === 'green') {
+        if (matchObj.spicy > state.selectedSpicy) {
+          safetyState = 'orange';
+        }
+      }
+
+      // Render profile warning blocks
+      const banner = document.getElementById('profile-match-banner');
+      const bannerTitle = document.getElementById('match-status-title');
+      const bannerDesc = document.getElementById('match-status-desc');
+      const bannerIcon = document.getElementById('match-status-icon');
+      const trans = translations[state.lang];
+
+      if (safetyState === 'green') {
+        banner.className = "p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200";
+        bannerTitle.innerText = trans.safeTitle;
+        bannerDesc.innerText = trans.safeDesc;
+        bannerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>`;
+      } else if (safetyState === 'orange') {
+        banner.className = "p-3 rounded-xl bg-amber-50 text-amber-900 border border-amber-200";
+        bannerTitle.innerText = trans.warnTitle;
+        bannerDesc.innerText = isCrossContact ? `${trans.crossDesc} (${matchedDangers.join(', ').toUpperCase()})` : trans.warnDesc;
+        bannerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+      } else {
+        banner.className = "p-3 rounded-xl bg-red-50 text-red-900 border border-red-200";
+        bannerTitle.innerText = trans.dangerTitle;
+        bannerDesc.innerText = `${trans.dangerDesc} (Matched: ${matchedDangers.join(', ').toUpperCase()})`;
+        bannerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+      }
+
+      // Update spec sheet
+      document.getElementById('spec-val-name').innerText = matchObj.name;
+      document.getElementById('spec-val-ingredients').innerText = matchObj.ingredients;
+      document.getElementById('spec-val-allergens').innerText = (matchObj.allergens || []).length > 0 ? matchObj.allergens.join(', ') : 'None';
+      
+      const spicyTextMap = ['Mild (Lvl 1)', 'Normal (Lvl 2)', 'Hot (Lvl 3) 🔥', 'Extreme (Lvl 4) 🌶️'];
+      document.getElementById('spec-val-spicy').innerText = spicyTextMap[matchObj.spicy] || spicyTextMap[0];
+
+      // Dietary Flags badges
+      const flagsContainer = document.getElementById('spec-dietary-flags');
+      flagsContainer.innerHTML = '';
+      (matchObj.dietaryFlags || []).forEach(flag => {
+        const badge = document.createElement('span');
+        badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-vintage-dark/5 text-vintage-olive border border-vintage-dark/10";
+        badge.innerText = flag;
+        flagsContainer.appendChild(badge);
+      });
+
+      // How to Eat (Korean Way) steps
+      const stepsContainer = document.getElementById('eating-method-list');
+      stepsContainer.innerHTML = '';
+      (matchObj.eatingMethod || []).forEach((step, idx) => {
+        const row = document.createElement('div');
+        row.className = "flex gap-2 items-start";
+        row.innerHTML = `
+          <span class="w-5 h-5 shrink-0 rounded-full bg-vintage-clay/20 text-vintage-terracotta text-[10px] font-bold flex items-center justify-center mt-0.5">${idx + 1}</span>
+          <p class="text-xs text-vintage-dark leading-relaxed">${step}</p>
+        `;
+        stepsContainer.appendChild(row);
+      });
+
+      // Cultural note box
+      const cultureBox = document.getElementById('cultural-note-box');
+      const cultureText = document.getElementById('cultural-note-text');
+      if (matchObj.culturalNote) {
+        cultureText.innerText = matchObj.culturalNote;
+        cultureBox.classList.remove('hidden');
+      } else {
+        cultureBox.classList.add('hidden');
+      }
+
+      // Track this dish's foodId for potential review lookups elsewhere (e.g. Map tab)
+      state.currentReviewFoodId = matchObj.foodId || null;
+      state.lastScannedDishNamesKo = [matchObj.nameKo || extractKoreanName(matchObj.name)];
+
+      // Ensure the single-dish view is shown (multi-dish AAI view has its own toggle)
+      document.getElementById('single-dish-details').classList.remove('hidden');
+      document.getElementById('multi-dish-list').classList.add('hidden');
+
+      // Expose Pane
+      document.getElementById('scan-result-pane').classList.remove('hidden');
+      showToast(translations[state.lang].toastScanDone);
+    }
+
+    // Reset simulator lens to capture state
+    function resetScanner() {
+      document.getElementById('scanned-image-preview').classList.add('hidden');
+      document.getElementById('camera-blank').classList.remove('hidden');
+      document.getElementById('btn-trigger-scan').disabled = true;
+      document.getElementById('scan-result-pane').classList.add('hidden');
+      document.getElementById('scan-loc-indicator').innerText = 'Jeonpo: Offline Mode';
+      state.isRealPhotoUpload = false;
+      state.uploadedImageDataUrl = null;
+    }
+
+    // Clear the saved profile and return to the very first onboarding screen.
+    // Useful for testers/developers who need to re-check the initial flow,
+    // and for real users who want to fully reset their preferences.
+    function resetToOnboarding() {
+      const trans = translations[state.lang];
+      const confirmMsg = trans.resetConfirm || 'Reset all saved settings and return to the start screen?';
+      if (!window.confirm(confirmMsg)) return;
+
+      try {
+        localStorage.removeItem(PROFILE_STORAGE_KEY);
+      } catch (err) {
+        console.error('Could not clear saved profile:', err);
+      }
+
+      // Reset in-memory state back to defaults
+      state.dietary = 'none';
+      state.selectedSpicy = 1;
+      state.selectedAllergies.clear();
+      state.customAllergies = [];
+
+      document.getElementById('custom-allergy-badges').innerHTML = '';
+      const badge = document.getElementById('allergy-badge');
+      if (badge) badge.classList.add('hidden');
+
+      setLanguage('en');
+      setSpicy(1);
+      document.getElementById('diet-select').value = 'none';
+      document.getElementById('modal-diet-select').value = 'none';
+
+      document.getElementById('main-app').classList.add('hidden');
+      document.getElementById('landing-page').classList.remove('hidden');
+    }
+
+    // Real-time Exchange rates via free Open-ER API representing live Naver data
+    async function fetchLiveExchangeRates() {
+      try {
+        // Fetch exchange rates based on KRW (Korean Won) as anchor
+        const response = await fetch('https://open.er-api.com/v6/latest/KRW');
+        const data = await response.json();
+        
+        if (data && data.rates) {
+          // Parse rates: open-er rates are quoted as unit of currency per 1 KRW.
+          // e.g. "USD": 0.00074 => 1 USD = 1 / 0.00074 = 1351.35 KRW.
+          state.currencyIndex.USD = Math.round(1 / data.rates.USD);
+          state.currencyIndex.JPY = (1 / data.rates.JPY) / 10; // For 100 JPY
+          state.currencyIndex.CNY = Math.round(1 / data.rates.CNY);
+          state.currencyIndex.EUR = Math.round(1 / data.rates.EUR);
+          state.currencyIndex.VND = (1 / data.rates.VND) * 1000; // For 1,000 VND
+
+          // Store when this rate data is actually from (the API only updates
+          // periodically — this shows the real date/time instead of implying
+          // second-by-second "live" updates, which this data isn't).
+          state.rateAsOfDate = data.time_last_update_utc ? new Date(data.time_last_update_utc) : new Date();
+          updateRateAsOfDisplay();
+
+          // Update Info indices block in UI
+          document.getElementById('live-rate-indices').innerHTML = `
+            <div>1 USD = ${state.currencyIndex.USD.toLocaleString()} KRW</div>
+            <div>100 JPY = ${Math.round(state.currencyIndex.JPY * 100).toLocaleString()} KRW</div>
+            <div>1 CNY = ${state.currencyIndex.CNY.toLocaleString()} KRW</div>
+            <div>1 EUR = ${state.currencyIndex.EUR.toLocaleString()} KRW</div>
+            <div>1,000 VND = ${Math.round(state.currencyIndex.VND).toLocaleString()} KRW</div>
+          `;
+          updateCurrentRateDisplay();
+          calculateExchange(true);
+        }
+      } catch (e) {
+        console.error("Live exchange rates fetch error, fallback active.", e);
+      }
+    }
+
+    // Show the actual date/time the exchange rate data is from, in the
+    // person's current app language. Replaces a misleading "LIVE" badge —
+    // this data updates periodically (daily-ish), not second by second.
+    function updateRateAsOfDisplay() {
+      const badge = document.getElementById('live-rate-status');
+      if (!badge) return;
+      const trans = translations[state.lang];
+
+      if (!state.rateAsOfDate) {
+        badge.innerText = trans.liveSyncedText;
+        return;
+      }
+
+      const localeMap = { en: 'en-US', ja: 'ja-JP', zh: 'zh-CN', vi: 'vi-VN', es: 'es-ES', ko: 'ko-KR' };
+      const locale = localeMap[state.lang] || 'en-US';
+      const formatted = new Intl.DateTimeFormat(locale, {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      }).format(state.rateAsOfDate);
+
+      badge.innerText = `${trans.liveSyncedText}: ${formatted}`;
+    }
+
+    // Show a prominent "1 <currency> = X KRW" line for whichever currency
+    // is currently selected, using the latest fetched (or fallback) rate.
+    function updateCurrentRateDisplay() {
+      const el = document.getElementById('current-rate-display');
+      if (!el) return;
+      const target = state.targetCurrency;
+      let unit = 1;
+      let rate = state.currencyIndex[target];
+      if (target === 'JPY') {
+        unit = 100;
+        rate = Math.round(state.currencyIndex.JPY * 100);
+      } else if (target === 'VND') {
+        unit = 1000;
+        rate = Math.round(state.currencyIndex.VND);
+      } else {
+        rate = Math.round(rate);
+      }
+      el.innerText = `${unit.toLocaleString()} ${target} = ${rate.toLocaleString()} KRW`;
+    }
+
+    // Currency Switcher
+    function setCurrency(target) {
+      state.targetCurrency = target;
+
+      // Update selector buttons styling
+      document.querySelectorAll('.cur-selector').forEach(btn => {
+        btn.classList.remove('bg-vintage-terracotta', 'text-white', 'border-vintage-terracotta');
+        btn.classList.add('bg-white', 'text-vintage-dark');
+      });
+
+      const activeBtn = document.getElementById(`cur-btn-${target}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-white', 'text-vintage-dark');
+        activeBtn.classList.add('bg-vintage-terracotta', 'text-white', 'border-vintage-terracotta');
+      }
+
+      // Update symbol representation labels
+      const currencySymbols = { USD: 'USD ($)', JPY: 'JPY (¥)', CNY: 'CNY (¥)', EUR: 'EUR (€)', VND: 'VND (₫)' };
+      document.getElementById('foreign-symbol').innerText = currencySymbols[target];
+
+      // Update the prominent current-rate line for the newly selected currency
+      updateCurrentRateDisplay();
+
+      // Re-trigger math calculation
+      calculateExchange(true);
+    }
+
+    // Perform dual path conversion
+    function calculateExchange(isForeignInput) {
+      const foreignInput = document.getElementById('foreign-input');
+      const krwInput = document.getElementById('krw-input');
+      const rate = state.currencyIndex[state.targetCurrency];
+
+      if (isForeignInput) {
+        const val = parseFloat(foreignInput.value) || 0;
+        let result = 0;
+        if (state.targetCurrency === 'JPY') {
+          result = Math.round(val * (rate));
+        } else if (state.targetCurrency === 'VND') {
+          result = Math.round((val / 1000) * rate);
+        } else {
+          result = Math.round(val * rate);
+        }
+        krwInput.value = result;
+      } else {
+        const val = parseFloat(krwInput.value) || 0;
+        let result = 0;
+        if (state.targetCurrency === 'JPY') {
+          result = Math.round((val / (rate)) * 100) / 100;
+        } else if (state.targetCurrency === 'VND') {
+          result = Math.round(((val * 1000) / rate) * 100) / 100;
+        } else {
+          result = Math.round((val / rate) * 100) / 100;
+        }
+        foreignInput.value = result;
+      }
+    }
+
+    // User Profile settings modal toggle mechanics
+    function openProfileModal() {
+      document.getElementById('modal-diet-select').value = state.dietary;
+      setSpicy(state.selectedSpicy);
+
+      const modal = document.getElementById('profile-modal');
+      const modalBody = document.getElementById('profile-modal-body');
+      
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modalBody.classList.remove('translate-y-full');
+      }, 50);
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      const modalBody = document.getElementById('profile-modal-body');
+
+      modalBody.classList.add('translate-y-full');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+
+      saveProfileToStorage();
+      showToast(translations[state.lang].toastProfileSave);
+    }
+
+    // ==========================================
+    // TRAVELER REVIEWS MODAL LOGIC
+    // ==========================================
+
+    function renderReviewsList() {
+      const foodId = state.currentReviewFoodId;
+      const container = document.getElementById('reviews-list-container');
+      container.innerHTML = '';
+
+      if (!foodId || !REVIEWS_DATABASE[foodId] || REVIEWS_DATABASE[foodId].length === 0) {
+        container.innerHTML = `<p class="text-xs text-vintage-olive italic text-center py-4">No reviews yet. Be the first to share your experience!</p>`;
+        return;
+      }
+
+      const reviews = REVIEWS_DATABASE[foodId];
+
+      reviews.slice().reverse().forEach(review => {
+        const card = document.createElement('div');
+        card.className = "bg-white p-3.5 rounded-xl vintage-border space-y-1.5";
+        const stars = '⭐'.repeat(review.rating) + '<span class="opacity-20">' + '⭐'.repeat(5 - review.rating) + '</span>';
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="font-bold text-vintage-dark text-sm block">${review.user}</span>
+              <span class="text-[10px] text-vintage-olive">${review.country} • Spice tolerance Lvl ${review.spiceTolerance}</span>
+            </div>
+            <span class="text-xs">${stars}</span>
+          </div>
+          <p class="text-xs text-vintage-dark leading-relaxed">"${review.text}"</p>
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-[10px] font-mono text-vintage-clay">🌶️ Felt: Lvl ${review.spiceFelt}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${review.wouldAgain ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${review.wouldAgain ? 'Would eat again' : 'Would avoid'}</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openReviewsModal() {
+      const activeLoc = locations[state.currentLocIdx];
+      const foodName = activeLoc ? (activeLoc.mainDish[state.lang] || activeLoc.mainDish['en']) : '';
+      document.getElementById('reviews-modal-food-name').innerText = foodName;
+
+      renderReviewsList();
+
+      const modal = document.getElementById('reviews-modal');
+      const modalBody = document.getElementById('reviews-modal-body');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modalBody.classList.remove('translate-y-full');
+      }, 50);
+    }
+
+    function closeReviewsModal() {
+      const modal = document.getElementById('reviews-modal');
+      const modalBody = document.getElementById('reviews-modal-body');
+
+      modalBody.classList.add('translate-y-full');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
+
+    // Submit a new traveler review (in-memory only, resets on reload)
+    function submitReview(event) {
+      event.preventDefault();
+      const foodId = state.currentReviewFoodId;
+      if (!foodId) return;
+
+      const rating = parseInt(document.getElementById('review-rating-input').value, 10);
+      const spiceFelt = parseInt(document.getElementById('review-spice-input').value, 10);
+      const text = document.getElementById('review-comment-input').value.trim();
+      if (!text) return;
+
+      if (!REVIEWS_DATABASE[foodId]) {
+        REVIEWS_DATABASE[foodId] = [];
+      }
+
+      REVIEWS_DATABASE[foodId].push({
+        user: "You",
+        country: "Traveler",
+        spiceTolerance: state.selectedSpicy + 1,
+        rating: rating,
+        spiceFelt: spiceFelt,
+        text: text,
+        wouldAgain: rating >= 3
+      });
+
+      document.getElementById('review-comment-input').value = '';
+      renderReviewsList();
+      showToast("Thanks for sharing your review!");
+    }
+  </script>
+</body>
+</html>
